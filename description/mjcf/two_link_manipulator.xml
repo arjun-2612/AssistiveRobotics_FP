@@ -1,0 +1,111 @@
+<mujoco model="two_link_manipulator">
+  <compiler angle="radian" coordinate="local" meshdir="meshes"/>
+  <option timestep="0.002" integrator="RK4"/>
+
+  <asset>
+    <mesh name="palm_mesh" file="palm.STL"/>
+    <mesh name="Left_base_mesh" file="Left_base.STL"/>
+    <mesh name="LL1_mesh" file="LL1.STL"/>
+    <mesh name="LL2_mesh" file="LL2.STL"/>
+    <mesh name="LL3_mesh" file="LL3.STL"/>
+    <mesh name="Right_base_mesh" file="Right_base.STL"/>
+    <mesh name="RL1_mesh" file="RL1.STL"/>
+    <mesh name="RL2_mesh" file="RL2.STL"/>
+    <mesh name="RL3_mesh" file="RL3.STL"/>
+  </asset>
+
+  <worldbody>
+    <!-- Root fixed base: palm -->
+    <body name="palm" pos="0 0 0" euler="0 0 0">
+      <inertial mass="0.18762"
+                pos="0.67078 0.88478 1.3084"
+                diaginertia="1.7744e-05 3.9275e-04 4.0334e-04"/>
+      <geom name="palm_geom" type="mesh" mesh="palm_mesh" rgba="0.86667 0.9098 1 1" contype="1" conaffinity="1"/>
+
+      <!-- LEFT ARM CHAIN -->
+      <!-- joint1: parent=palm -> child=Left_base -->
+      <body name="Left_base" pos="0.61073 -1.3084 0.89978" euler="1.5708 0 -0.77764">
+        <inertial mass="0.0040046"
+                  pos="0 0.01 2.8652e-08"
+                  diaginertia="1.9205e-07 2.1036e-07 2.9779e-07"/>
+        <geom name="Left_base_geom" type="mesh" mesh="Left_base_mesh" rgba="0.79216 0.81961 0.93333 1" contype="1" conaffinity="1"/>
+        <joint name="joint1" type="hinge" pos="0 0 0" axis="0 1 0" range="-1.57 1.57"/>
+
+        <!-- joint2: Left_base -> LL1 -->
+        <body name="LL1" pos="0 0.01 0" euler="0 0 -0.66305">
+          <inertial mass="0.049843"
+                    pos="-0.035 1.2879e-14 2.2204e-16"
+                    diaginertia="2.3166e-06 2.5769e-05 2.6891e-05"/>
+          <geom name="LL1_geom" type="mesh" mesh="LL1_mesh" rgba="0.86667 0.9098 1 1" contype="1" conaffinity="1"/>
+          <joint name="joint2" type="hinge" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
+
+          <!-- joint3: LL1 -> LL2 -->
+          <body name="LL2" pos="-0.07 0 0" euler="0 0 0.95183">
+            <inertial mass="0.043363"
+                      pos="0.03 9.4369e-15 4.5680e-10"
+                      diaginertia="2.0228e-06 1.7217e-05 1.8201e-05"/>
+            <geom name="LL2_geom" type="mesh" mesh="LL2_mesh" rgba="0.86667 0.9098 1 1" contype="1" conaffinity="1"/>
+            <joint name="joint3" type="hinge" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
+
+            <!-- joint4: LL2 -> LL3 -->
+            <body name="LL3" pos="0.06 0 0" euler="0 0 0.91379">
+              <inertial mass="0.042971"
+                        pos="0.029641 -6.7376e-09 3.9692e-09"
+                        diaginertia="1.9341e-06 1.6622e-05 1.7525e-05"/>
+              <geom name="LL3_geom" type="mesh" mesh="LL3_mesh" rgba="0.86667 0.9098 1 1" contype="1" conaffinity="1"/>
+              <joint name="joint4" type="hinge" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- RIGHT ARM CHAIN -->
+      <!-- joint5: parent=palm -> child=Right_base -->
+      <body name="Right_base" pos="0.73083 -1.3084 0.89978" euler="1.5708 0 2.9852">
+        <inertial mass="0.0040046"
+                  pos="0 0.01 2.8652e-08"
+                  diaginertia="1.9205e-07 2.1036e-07 2.9779e-07"/>
+        <geom name="Right_base_geom" type="mesh" mesh="Right_base_mesh" rgba="0.79216 0.81961 0.93333 1" contype="1" conaffinity="1"/>
+        <joint name="joint5" type="hinge" pos="0 0 0" axis="0 1 0" range="-1.57 1.57"/>
+
+        <!-- joint6: Right_base -> RL1 -->
+        <body name="RL1" pos="0 0.01 0" euler="0 0 1.9755">
+          <inertial mass="0.049843"
+                    pos="0.035 5.6621e-15 4.5604e-10"
+                    diaginertia="2.3166e-06 2.5768e-05 2.6891e-05"/>
+          <geom name="RL1_geom" type="mesh" mesh="RL1_mesh" rgba="0.86667 0.9098 1 1" contype="1" conaffinity="1"/>
+          <joint name="joint6" type="hinge" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
+
+          <!-- joint7: RL1 -> RL2 -->
+          <body name="RL2" pos="0.07 0 0" euler="0 0 -0.77973">
+            <inertial mass="0.043363"
+                      pos="0.03 0 4.5680e-10"
+                      diaginertia="2.0228e-06 1.7217e-05 1.8201e-05"/>
+            <geom name="RL2_geom" type="mesh" mesh="RL2_mesh" rgba="0.86667 0.9098 1 1" contype="1" conaffinity="1"/>
+            <joint name="joint7" type="hinge" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
+
+            <!-- joint8: RL2 -> RL3 -->
+            <body name="RL3" pos="0.06 0 0" euler="0 0 0.78605">
+              <inertial mass="0.042971"
+                        pos="0.029641 -5.9431e-09 2.6922e-10"
+                        diaginertia="1.9341e-06 1.6622e-05 1.7525e-05"/>
+              <geom name="RL3_geom" type="mesh" mesh="RL3_mesh" rgba="0.86667 0.9098 1 1" contype="1" conaffinity="1"/>
+              <joint name="joint8" type="hinge" pos="0 0 0" axis="0 0 1" range="-1.57 1.57"/>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="a_joint1" joint="joint1" gear="1"/>
+    <motor name="a_joint2" joint="joint2" gear="1"/>
+    <motor name="a_joint3" joint="joint3" gear="1"/>
+    <motor name="a_joint4" joint="joint4" gear="1"/>
+    <motor name="a_joint5" joint="joint5" gear="1"/>
+    <motor name="a_joint6" joint="joint6" gear="1"/>
+    <motor name="a_joint7" joint="joint7" gear="1"/>
+    <motor name="a_joint8" joint="joint8" gear="1"/>
+  </actuator>
+</mujoco>
