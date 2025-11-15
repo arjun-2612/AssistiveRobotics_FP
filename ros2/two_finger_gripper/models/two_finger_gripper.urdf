@@ -3,22 +3,22 @@
      Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
      For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
 <robot
-  name="two_link_manipulator">
+  name="two_finger_gripper">
   <link
-    name="palm">
+    name="base">
     <inertial>
       <origin
-        xyz="0.67078 0.88478 1.3084"
+        xyz="0.00262722074449645 -0.0515974233427936 -5.40837853817067E-05"
         rpy="0 0 0" />
       <mass
-        value="0.18762" />
+        value="0.187618707682634" />
       <inertia
-        ixx="1.7744E-05"
-        ixy="-2.2097E-10"
-        ixz="1.1434E-10"
-        iyy="0.00039275"
-        iyz="9.4556E-12"
-        izz="0.00040334" />
+        ixx="1.77436072317056E-05"
+        ixy="-2.20966031791883E-10"
+        ixz="1.15856180736408E-10"
+        iyy="0.000392747111510324"
+        iyz="9.14631350659822E-12"
+        izz="0.000403340846571004" />
     </inertial>
     <visual>
       <origin
@@ -26,12 +26,12 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/palm.STL" />
+          filename="package://two_finger_gripper/meshes/palm.STL" />
       </geometry>
       <material
         name="">
         <color
-          rgba="0.86667 0.9098 1 1" />
+          rgba="0.866666666666667 0.909803921568627 1 1" />
       </material>
     </visual>
     <collision>
@@ -40,7 +40,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/palm.STL" />
+          filename="package://two_finger_gripper/meshes/palm.STL" />
       </geometry>
     </collision>
   </link>
@@ -48,17 +48,17 @@
     name="Left_base">
     <inertial>
       <origin
-        xyz="0 0.01 2.8652E-08"
+        xyz="0 -0.0100000012362075 2.86523228833799E-08"
         rpy="0 0 0" />
       <mass
-        value="0.0040046" />
+        value="0.00400455448945672" />
       <inertia
-        ixx="1.9205E-07"
-        ixy="8.652E-13"
-        ixz="-4.9982E-14"
-        iyy="2.1036E-07"
-        iyz="-1.4204E-19"
-        izz="2.9779E-07" />
+        ixx="1.92052268591215E-07"
+        ixy="8.65203978749533E-13"
+        ixz="-4.99818541782088E-14"
+        iyy="2.10355619255482E-07"
+        iyz="-1.41830818826952E-19"
+        izz="2.97791048750067E-07" />
     </inertial>
     <visual>
       <origin
@@ -66,12 +66,12 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/Left_base.STL" />
+          filename="package://two_finger_gripper/meshes/Left_base.STL" />
       </geometry>
       <material
         name="">
         <color
-          rgba="0.79216 0.81961 0.93333 1" />
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
       </material>
     </visual>
     <collision>
@@ -80,18 +80,18 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/Left_base.STL" />
+          filename="package://two_finger_gripper/meshes/Left_base.STL" />
       </geometry>
     </collision>
   </link>
   <joint
     name="joint1"
-    type="revolute">
+    type="continuous">
     <origin
-      xyz="0.61073 -1.3084 0.89978"
-      rpy="1.5708 0 -0.77764" />
+      xyz="-0.057418 -0.016597 -5.4093E-05"
+      rpy="-3.1416 0.0062462 3.1416" />
     <parent
-      link="palm" />
+      link="base" />
     <child
       link="Left_base" />
     <axis
@@ -106,17 +106,17 @@
     name="LL1">
     <inertial>
       <origin
-        xyz="-0.035 1.2879E-14 2.2204E-16"
+        xyz="3.09254011288118E-12 -6.66784336078585E-18 -4.56029676694503E-10"
         rpy="0 0 0" />
       <mass
-        value="0.049843" />
+        value="0.0498429374208328" />
       <inertia
-        ixx="2.3166E-06"
-        ixy="-5.4473E-12"
-        ixz="-1.5686E-19"
-        iyy="2.5769E-05"
-        iyz="6.7763E-21"
-        izz="2.6891E-05" />
+        ixx="2.31773846561898E-06"
+        ixy="1.72033158006435E-11"
+        ixz="-1.66640443145789E-07"
+        iyy="2.57684595575646E-05"
+        iyz="1.16663354518277E-13"
+        izz="2.68896045302319E-05" />
     </inertial>
     <visual>
       <origin
@@ -124,12 +124,12 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/LL1.STL" />
+          filename="package://two_finger_gripper/meshes/LL1.STL" />
       </geometry>
       <material
         name="">
         <color
-          rgba="0.86667 0.9098 1 1" />
+          rgba="0.866666666666667 0.909803921568627 1 1" />
       </material>
     </visual>
     <collision>
@@ -138,7 +138,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/LL1.STL" />
+          filename="package://two_finger_gripper/meshes/LL1.STL" />
       </geometry>
     </collision>
   </link>
@@ -146,14 +146,14 @@
     name="joint2"
     type="revolute">
     <origin
-      xyz="0 0.01 0"
-      rpy="0 0 -0.66305" />
+      xyz="0.032238 0.0036282 0"
+      rpy="3.1416 -0.0067813 -2.7416" />
     <parent
       link="Left_base" />
     <child
       link="LL1" />
     <axis
-      xyz="0 0 1" />
+      xyz="-0.0067813 0 0.99998" />
     <limit
       lower="-1.57"
       upper="1.57"
@@ -164,17 +164,17 @@
     name="LL2">
     <inertial>
       <origin
-        xyz="0.03 9.4369E-15 4.568E-10"
+        xyz="0 0 -4.56796475916278E-10"
         rpy="0 0 0" />
       <mass
-        value="0.043363" />
+        value="0.0433629505400265" />
       <inertia
-        ixx="2.0228E-06"
-        ixy="-1.3837E-11"
-        ixz="-1.9439E-19"
-        iyy="1.7217E-05"
-        iyz="-4.0234E-21"
-        izz="1.8201E-05" />
+        ixx="1.71254710698388E-05"
+        ixy="1.17699913287298E-06"
+        ixz="6.61744490042422E-24"
+        iyy="2.11457655215816E-06"
+        iyz="1.93052538413057E-21"
+        izz="1.82012341198528E-05" />
     </inertial>
     <visual>
       <origin
@@ -182,12 +182,12 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/LL2.STL" />
+          filename="package://two_finger_gripper/meshes/LL2.STL" />
       </geometry>
       <material
         name="">
         <color
-          rgba="0.86667 0.9098 1 1" />
+          rgba="0.866666666666667 0.909803921568627 1 1" />
       </material>
     </visual>
     <collision>
@@ -196,22 +196,22 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/LL2.STL" />
+          filename="package://two_finger_gripper/meshes/LL2.STL" />
       </geometry>
     </collision>
   </link>
   <joint
     name="joint3"
-    type="revolute">
+    type="fixed">
     <origin
-      xyz="-0.07 0 0"
-      rpy="0 0 0.95183" />
+      xyz="-0.048792 0.026641 -0.00033088"
+      rpy="-0.0026405 -0.0062461 0.39996" />
     <parent
       link="LL1" />
     <child
       link="LL2" />
     <axis
-      xyz="0 0 1" />
+      xyz="0 0 0" />
     <limit
       lower="-1.57"
       upper="1.57"
@@ -222,17 +222,17 @@
     name="LL3">
     <inertial>
       <origin
-        xyz="0.029641 -6.7376E-09 3.9692E-09"
+        xyz="0.00200108015824595 0.00418714417990923 -2.66025739468784E-10"
         rpy="0 0 0" />
       <mass
-        value="0.042971" />
+        value="0.0429708569563452" />
       <inertia
-        ixx="1.9341E-06"
-        ixy="-7.0439E-12"
-        ixz="4.8188E-12"
-        iyy="1.6622E-05"
-        iyz="-8.3066E-14"
-        izz="1.7525E-05" />
+        ixx="1.3890731520132E-05"
+        ixy="-5.71420959765879E-06"
+        ixz="-1.81980519789155E-14"
+        iyy="4.66502433111873E-06"
+        iyz="-3.66479761133223E-13"
+        izz="1.75254039654221E-05" />
     </inertial>
     <visual>
       <origin
@@ -240,12 +240,12 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/LL3.STL" />
+          filename="package://two_finger_gripper/meshes/LL3.STL" />
       </geometry>
       <material
         name="">
         <color
-          rgba="0.86667 0.9098 1 1" />
+          rgba="0.866666666666667 0.909803921568627 1 1" />
       </material>
     </visual>
     <collision>
@@ -254,7 +254,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/LL3.STL" />
+          filename="package://two_finger_gripper/meshes/LL3.STL" />
       </geometry>
     </collision>
   </link>
@@ -262,8 +262,8 @@
     name="joint4"
     type="revolute">
     <origin
-      xyz="0.06 0 0"
-      rpy="0 0 0.91379" />
+      xyz="0.008449 0.052466 0"
+      rpy="0 0 0" />
     <parent
       link="LL2" />
     <child
@@ -280,17 +280,17 @@
     name="Right_base">
     <inertial>
       <origin
-        xyz="0 0.01 2.8652E-08"
+        xyz="2.08166817117217E-17 -0.0100000012362075 2.8652322979386E-08"
         rpy="0 0 0" />
       <mass
-        value="0.0040046" />
+        value="0.00400455448945673" />
       <inertia
-        ixx="1.9205E-07"
-        ixy="8.652E-13"
-        ixz="-4.9982E-14"
-        iyy="2.1036E-07"
-        iyz="-1.4181E-19"
-        izz="2.9779E-07" />
+        ixx="1.92052268591215E-07"
+        ixy="8.65203978677214E-13"
+        ixz="-4.99818541676623E-14"
+        iyy="2.10355619255483E-07"
+        iyz="-1.41858307695259E-19"
+        izz="2.97791048750068E-07" />
     </inertial>
     <visual>
       <origin
@@ -298,12 +298,12 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/Right_base.STL" />
+          filename="package://two_finger_gripper/meshes/Right_base.STL" />
       </geometry>
       <material
         name="">
         <color
-          rgba="0.79216 0.81961 0.93333 1" />
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
       </material>
     </visual>
     <collision>
@@ -312,18 +312,18 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/Right_base.STL" />
+          filename="package://two_finger_gripper/meshes/Right_base.STL" />
       </geometry>
     </collision>
   </link>
   <joint
     name="joint5"
-    type="revolute">
+    type="continuous">
     <origin
-      xyz="0.73083 -1.3084 0.89978"
-      rpy="1.5708 0 2.9852" />
+      xyz="0.0626776436313551 -0.016597406252991 -5.40925989244405E-05"
+      rpy="3.14159265358979 0.0120396735067157 -3.14159265358979" />
     <parent
-      link="palm" />
+      link="base" />
     <child
       link="Right_base" />
     <axis
@@ -338,17 +338,17 @@
     name="RL1">
     <inertial>
       <origin
-        xyz="0.035 5.6621E-15 4.5604E-10"
+        xyz="2.77555756156289E-17 1.38777878078145E-17 -2.16840434497101E-19"
         rpy="0 0 0" />
       <mass
-        value="0.049843" />
+        value="0.0498429795113518" />
       <inertia
-        ixx="2.3166E-06"
-        ixy="-1.7204E-11"
-        ixz="-4.0712E-19"
-        iyy="2.5768E-05"
-        iyz="5.0822E-21"
-        izz="2.6891E-05" />
+        ixx="8.61896473314447E-06"
+        ixy="-1.03962696245024E-05"
+        ixz="-6.84243802703864E-21"
+        iyy="1.94661480154041E-05"
+        iyz="-3.99156619792781E-21"
+        izz="2.68907785888968E-05" />
     </inertial>
     <visual>
       <origin
@@ -356,12 +356,12 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/RL1.STL" />
+          filename="package://two_finger_gripper/meshes/RL1.STL" />
       </geometry>
       <material
         name="">
         <color
-          rgba="0.86667 0.9098 1 1" />
+          rgba="0.866666666666667 0.909803921568627 1 1" />
       </material>
     </visual>
     <collision>
@@ -370,7 +370,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/RL1.STL" />
+          filename="package://two_finger_gripper/meshes/RL1.STL" />
       </geometry>
     </collision>
   </link>
@@ -378,8 +378,8 @@
     name="joint6"
     type="revolute">
     <origin
-      xyz="0 0.01 0"
-      rpy="0 0 1.9755" />
+      xyz="-0.0299298995045382 0.00814390023253674 0"
+      rpy="3.14159265358979 0 -3.14159265358979" />
     <parent
       link="Right_base" />
     <child
@@ -396,17 +396,17 @@
     name="RL2">
     <inertial>
       <origin
-        xyz="0.03 0 4.568E-10"
+        xyz="-1.38777878078145E-17 0 -4.56796471633679E-10"
         rpy="0 0 0" />
       <mass
-        value="0.043363" />
+        value="0.0433629505400265" />
       <inertia
-        ixx="2.0228E-06"
-        ixy="-1.3837E-11"
-        ixz="-1.9812E-19"
-        iyy="1.7217E-05"
-        iyz="1.3553E-20"
-        izz="1.8201E-05" />
+        ixx="1.686688453173E-05"
+        ixy="2.28036734065714E-06"
+        ixz="-7.41153828847513E-22"
+        iyy="2.37316309026694E-06"
+        iyz="4.24197233222895E-21"
+        izz="1.82012341198528E-05" />
     </inertial>
     <visual>
       <origin
@@ -414,12 +414,12 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/RL2.STL" />
+          filename="package://two_finger_gripper/meshes/RL2.STL" />
       </geometry>
       <material
         name="">
         <color
-          rgba="0.86667 0.9098 1 1" />
+          rgba="0.866666666666667 0.909803921568627 1 1" />
       </material>
     </visual>
     <collision>
@@ -428,7 +428,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/RL2.STL" />
+          filename="package://two_finger_gripper/meshes/RL2.STL" />
       </geometry>
     </collision>
   </link>
@@ -436,8 +436,8 @@
     name="joint7"
     type="revolute">
     <origin
-      xyz="0.07 0 0"
-      rpy="0 0 -0.77973" />
+      xyz="0.0253746560766339 0.0477960461466609 0"
+      rpy="0 0 0" />
     <parent
       link="RL1" />
     <child
@@ -454,17 +454,17 @@
     name="RL3">
     <inertial>
       <origin
-        xyz="0.029641 -5.9431E-09 2.6922E-10"
+        xyz="-0.00136714904886262 0.00443479359103954 -1.6916274815388E-10"
         rpy="0 0 0" />
       <mass
-        value="0.042971" />
+        value="0.0429708583079173" />
       <inertia
-        ixx="1.9341E-06"
-        ixy="-6.1647E-12"
-        ixz="3.4221E-13"
-        iyy="1.6622E-05"
-        iyz="-1.4195E-13"
-        izz="1.7525E-05" />
+        ixx="1.53469520450817E-05"
+        ixy="4.13484726157431E-06"
+        ixz="2.03891445606294E-13"
+        iyy="3.20880478988122E-06"
+        iyz="-1.65519553727103E-13"
+        izz="1.75254049269463E-05" />
     </inertial>
     <visual>
       <origin
@@ -472,12 +472,12 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/RL3.STL" />
+          filename="package://two_finger_gripper/meshes/RL3.STL" />
       </geometry>
       <material
         name="">
         <color
-          rgba="0.86667 0.9098 1 1" />
+          rgba="0.866666666666667 0.909803921568627 1 1" />
       </material>
     </visual>
     <collision>
@@ -486,7 +486,7 @@
         rpy="0 0 0" />
       <geometry>
         <mesh
-          filename="meshes/RL3.STL" />
+          filename="package://two_finger_gripper/meshes/RL3.STL" />
       </geometry>
     </collision>
   </link>
@@ -494,8 +494,8 @@
     name="joint8"
     type="revolute">
     <origin
-      xyz="0.06 0 0"
-      rpy="0 0 0.78605" />
+      xyz="-0.011920133812663 0.0535426961300677 0"
+      rpy="0 0 0" />
     <parent
       link="RL2" />
     <child

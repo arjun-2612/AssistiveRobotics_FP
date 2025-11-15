@@ -91,8 +91,8 @@ def apply_pd_torques(model: mj.MjModel, data: mj.MjData, pairs: List[Tuple[int, 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--model', required=True, help='Path to MJCF model (.xml)')
-    ap.add_argument('--kp', type=float, default=60.0, help='PD proportional gain')
-    ap.add_argument('--kd', type=float, default=2.0, help='PD derivative gain')
+    ap.add_argument('--kp', type=float, default=10.0, help='PD proportional gain')
+    ap.add_argument('--kd', type=float, default=0.5, help='PD derivative gain')
     ap.add_argument('--seed', type=int, default=0, help='Random seed')
     ap.add_argument('--simtime', type=float, default=15.0, help='Total simulation time (s)')
     ap.add_argument('--resample', type=float, default=3.0, help='Seconds between new random targets')
@@ -125,7 +125,7 @@ def main():
                 next_resample = now + args.resample
 
             # PD control
-            # apply_pd_torques(model, data, pairs, qpos_target, args.kp, args.kd)
+            apply_pd_torques(model, data, pairs, qpos_target, args.kp, args.kd)
 
             # Step simulation
             mj.mj_step(model, data)
