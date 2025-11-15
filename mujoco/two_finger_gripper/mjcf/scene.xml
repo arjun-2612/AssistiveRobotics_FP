@@ -1,5 +1,5 @@
 <mujoco model="main scene">
-  <include file="two_link_manipulator.xml"/>
+  <include file="two_finger_gripper.xml"/>
 
   <statistic center="0 0 0.1" extent="0.8"/>
 
