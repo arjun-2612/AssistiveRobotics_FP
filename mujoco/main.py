@@ -125,7 +125,7 @@ def main():
                 next_resample = now + args.resample
 
             # PD control
-            apply_pd_torques(model, data, pairs, qpos_target, args.kp, args.kd)
+            # apply_pd_torques(model, data, pairs, qpos_target, args.kp, args.kd)
 
             # Step simulation
             mj.mj_step(model, data)
