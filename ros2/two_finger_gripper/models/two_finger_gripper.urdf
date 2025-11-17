@@ -103,6 +103,64 @@
       velocity="4.0" />
   </joint>
   <link
+    name="right_side_pitch">
+    <inertial>
+      <origin
+        xyz="0 2.86523228808862E-08 0.00999999876379255"
+        rpy="0 0 -1.577" />
+      <mass
+        value="0.00400455448945672" />
+      <inertia
+        ixx="1.92052268591215E-07"
+        ixy="8.65203978749533E-13"
+        ixz="-4.99818541784156E-14"
+        iyy="2.10355619255482E-07"
+        iyz="-1.41830818818275E-19"
+        izz="2.97791048750067E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.01 0 0"
+        rpy="0 0 -1.577" />
+      <geometry>
+        <mesh
+          filename="package://two_finger_gripper/meshes/right_side.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 -1.577" />
+      <geometry>
+        <mesh
+          filename="package://two_finger_gripper/meshes/right_side.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="right_base_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.025"
+      rpy="0 0 0" />
+    <parent
+      link="right_side" />
+    <child
+      link="right_side_pitch" />
+    <axis
+      xyz="0 1 0" />
+    <limit
+      lower="-0.5235"
+      upper="0.5235"
+      effort="10.0"
+      velocity="4.0" />
+  </joint>
+  <link
     name="R1">
     <inertial>
       <origin
@@ -149,7 +207,7 @@
       xyz="0 0.0 0.009"
       rpy="0 0 0" />
     <parent
-      link="right_side" />
+      link="right_side_pitch" />
     <child
       link="R1" />
     <axis
@@ -317,7 +375,7 @@
     </collision>
   </link>
   <joint
-    name="left_base_joint"
+    name="left_base_yaw_joint"
     type="revolute">
     <origin
       xyz="0 -0.060046 0.015"
@@ -328,6 +386,64 @@
       link="left_side" />
     <axis
       xyz="0 0 1" />
+    <limit
+      lower="-0.5235"
+      upper="0.5235"
+      effort="10.0"
+      velocity="4.0" />
+  </joint>
+  <link
+    name="left_side_pitch">
+    <inertial>
+      <origin
+        xyz="0 2.86523228808862E-08 0.00999999876379255"
+        rpy="0 0 -1.577" />
+      <mass
+        value="0.00400455448945672" />
+      <inertia
+        ixx="1.92052268591215E-07"
+        ixy="8.65203978749533E-13"
+        ixz="-4.99818541784156E-14"
+        iyy="2.10355619255482E-07"
+        iyz="-1.41830818818275E-19"
+        izz="2.97791048750067E-07" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="-0.01 0 0"
+        rpy="0 0 -1.577" />
+      <geometry>
+        <mesh
+          filename="package://two_finger_gripper/meshes/left_side.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 -1.577" />
+      <geometry>
+        <mesh
+          filename="package://two_finger_gripper/meshes/left_side.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="left_base_pitch_joint"
+    type="revolute">
+    <origin
+      xyz="0 0 0.025"
+      rpy="0 0 0" />
+    <parent
+      link="left_side" />
+    <child
+      link="left_side_pitch" />
+    <axis
+      xyz="0 1 0" />
     <limit
       lower="-0.5235"
       upper="0.5235"
@@ -381,7 +497,7 @@
       xyz="0 0 0.009"
       rpy="0 0 0" />
     <parent
-      link="left_side" />
+      link="left_side_pitch" />
     <child
       link="L1" />
     <axis
