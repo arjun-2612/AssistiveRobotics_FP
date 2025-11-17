@@ -1,0 +1,247 @@
+<mujoco model="two_finger_gripper">
+  <compiler angle="radian" coordinate="local"/>
+  <option timestep="0.001"/>
+
+  <asset>
+    <mesh name="base_link_mesh" file="meshes/base_link.STL"/>
+    <mesh name="right_side_mesh" file="meshes/right_side.STL"/>
+    <mesh name="right_side_pitch_mesh" file="meshes/right_side.STL"/>
+    <mesh name="R1_mesh" file="meshes/R1.STL"/>
+    <mesh name="R2_mesh" file="meshes/R2.STL"/>
+    <mesh name="R3_mesh" file="meshes/R3.STL"/>
+    <mesh name="left_side_mesh" file="meshes/left_side.STL"/>
+    <mesh name="left_side_pitch_mesh" file="meshes/left_side.STL"/>
+    <mesh name="L1_mesh" file="meshes/L1.STL"/>
+    <mesh name="L2_mesh" file="meshes/L2.STL"/>
+    <mesh name="L3_mesh" file="meshes/L3.STL"/>
+  </asset>
+
+  <worldbody>
+    <!-- base_link is root -->
+    <body name="base_link" pos="0 0 0">
+      <inertial
+        pos="8.81354273374553E-09 -4.22886858600738E-07 -1.70898026224046E-08"
+        mass="0.187618707682634"
+        diaginertia="0.000403340846571004 1.77436072317056E-05 0.000392747111510324"/>
+      <geom
+        type="mesh"
+        mesh="base_link_mesh"
+        pos="0 0 0"
+        euler="0 0 0"
+        rgba="0.866666666666667 0.909803921568627 1 1"/>
+
+      <!-- right_side -->
+      <body name="right_side" pos="0 0.06005 0.015" euler="0 0 0">
+        <inertial
+          pos="2.08166817117217E-17 2.8652322981988E-08 0.00999999876379252"
+          euler="1.5708 0 -1.5828"
+          mass="0.00400455448945673"
+          diaginertia="1.92052268591215E-07 2.10355619255483E-07 2.97791048750068E-07"/>
+        <joint
+          name="right_base_joint"
+          type="hinge"
+          axis="0 0 1"
+          range="-0.5235 0.5235"/>
+        <geom
+          type="mesh"
+          mesh="right_side_mesh"
+          pos="0 0 0"
+          euler="1.5708 0 -1.5828"
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1"/>
+
+        <!-- right_side_pitch -->
+        <body name="right_side_pitch" pos="0 0 0.025" euler="0 0 0">
+          <inertial
+            pos="0 2.86523228808862E-08 0"
+            euler="0 0 -1.577"
+            mass="0.00400455448945672"
+            diaginertia="1.92052268591215E-07 2.10355619255482E-07 2.97791048750067E-07"/>
+          <joint
+            name="right_base_pitch_joint"
+            type="hinge"
+            axis="0 1 0"
+            range="-0.5235 0.5235"/>
+          <geom
+            type="mesh"
+            mesh="right_side_pitch_mesh"
+            pos="-0.01 0 0"
+            euler="0 0 -1.577"
+            rgba="0.792156862745098 0.819607843137255 0.933333333333333 1"/>
+
+          <!-- R1 -->
+          <body name="R1" pos="0 0 0.009" euler="0 0 0">
+            <inertial
+              pos="1.26851654180804E-17 2.28983498828939E-16 0.0350000000000001"
+              euler="1.57 0 0"
+              mass="0.0498429795113518"
+              diaginertia="2.68907785888968E-05 2.31661213105638E-06 2.57685006174922E-05"/>
+            <joint
+              name="R1_joint"
+              type="hinge"
+              axis="1 0 0"
+              range="-1.57 0.5235"/>
+            <geom
+              type="mesh"
+              mesh="R1_mesh"
+              pos="0 0 0"
+              euler="1.57 0 0"
+              rgba="0.866666666666667 0.909803921568627 1 1"/>
+
+            <!-- R2 -->
+            <body name="R2" pos="0 0 0.07" euler="0 0 0">
+              <inertial
+                pos="-4.56796454828545E-10 0 0.0296521459141245"
+                euler="1.4 0 0"
+                mass="0.0433629505400265"
+                diaginertia="1.82012341198528E-05 2.37316309026694E-06 1.68668845317301E-05"/>
+              <joint
+                name="R2_joint"
+                type="hinge"
+                axis="1 0 0"
+                range="-0.5235 2"/>
+              <geom
+                type="mesh"
+                mesh="R2_mesh"
+                pos="0 0 0"
+                euler="1.4 0 0"
+                rgba="0.866666666666667 0.909803921568627 1 1"/>
+
+              <!-- R3 -->
+              <body name="R3" pos="0 0 0.06" euler="0 0 0">
+                <inertial
+                  pos="-1.69162753791731E-10 0 0.0283253438069827"
+                  euler="1.25 0 0"
+                  mass="0.0429708583079173"
+                  diaginertia="1.75254049269463E-05 3.20880478988122E-06 1.53469520450817E-05"/>
+                <joint
+                  name="R3_joint"
+                  type="hinge"
+                  axis="1 0 0"
+                  range="-0.5235 1.57"/>
+                <geom
+                  type="mesh"
+                  mesh="R3_mesh"
+                  pos="0 0.001 0"
+                  euler="1.25 0 0"
+                  rgba="0.866666666666667 0.909803921568627 1 1"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+
+      <!-- left_side -->
+      <body name="left_side" pos="0 -0.060046 0.015" euler="0 0 0">
+        <inertial
+          pos="0 2.86523228808862E-08 0.00999999876379255"
+          euler="1.5708 0 -1.577"
+          mass="0.00400455448945672"
+          diaginertia="1.92052268591215E-07 2.10355619255482E-07 2.97791048750067E-07"/>
+        <joint
+          name="left_base_yaw_joint"
+          type="hinge"
+          axis="0 0 1"
+          range="-0.5235 0.5235"/>
+        <geom
+          type="mesh"
+          mesh="left_side_mesh"
+          pos="0 0 0"
+          euler="1.5708 0 -1.577"
+          rgba="0.792156862745098 0.819607843137255 0.933333333333333 1"/>
+
+        <!-- left_side_pitch -->
+        <body name="left_side_pitch" pos="0 0 0.025" euler="0 0 0">
+          <inertial
+            pos="0 2.86523228808862E-08 0"
+            euler="0 0 -1.577"
+            mass="0.00400455448945672"
+            diaginertia="1.92052268591215E-07 2.10355619255482E-07 2.97791048750067E-07"/>
+          <joint
+            name="left_base_pitch_joint"
+            type="hinge"
+            axis="0 1 0"
+            range="-0.5235 0.5235"/>
+          <geom
+            type="mesh"
+            mesh="left_side_pitch_mesh"
+            pos="-0.01 0 0"
+            euler="0 0 -1.577"
+            rgba="0.792156862745098 0.819607843137255 0.933333333333333 1"/>
+
+          <!-- L1 -->
+          <body name="L1" pos="0 0 0.009" euler="0 0 0">
+            <inertial
+              pos="-4.56040182505134E-10 0 0.0350000000000008"
+              euler="1.57 0 0"
+              mass="0.0498429374208329"
+              diaginertia="2.68907345933772E-05 2.31660840247375E-06 2.57684595575646E-05"/>
+            <joint
+              name="L1_joint"
+              type="hinge"
+              axis="1 0 0"
+              range="-0.5235 1.57"/>
+            <geom
+              type="mesh"
+              mesh="L1_mesh"
+              pos="0 0 0"
+              euler="1.57 0 0"
+              rgba="0.866666666666667 0.909803921568627 1 1"/>
+
+            <!-- L2 -->
+            <body name="L2" pos="0 0 0.07" euler="0 0 0">
+              <inertial
+                pos="0 0 0.035"
+                euler="1.57 0 0"
+                mass="0.0433629505400265"
+                diaginertia="1.82012341198528E-05 2.02284897334824E-06 1.72171986486488E-05"/>
+              <joint
+                name="L2_joint"
+                type="hinge"
+                axis="1 0 0"
+                range="-2 1.57"/>
+              <geom
+                type="mesh"
+                mesh="L2_mesh"
+                pos="0 0 0"
+                euler="1.57 0 0"
+                rgba="0.866666666666667 0.909803921568627 1 1"/>
+
+              <!-- L3 -->
+              <body name="L3" pos="0 0 0.06" euler="0 0 0">
+                <inertial
+                  pos="-2.66025734427244E-10 0 0.029"
+                  euler="1.57 0 0"
+                  mass="0.0429708569563452"
+                  diaginertia="1.75254039654221E-05 1.93413163301078E-06 1.66216242182399E-05"/>
+                <joint
+                  name="L3_joint"
+                  type="hinge"
+                  axis="1 0 0"
+                  range="-1.57 0.5235"/>
+                <geom
+                  type="mesh"
+                  mesh="L3_mesh"
+                  pos="0 0 0"
+                  euler="1.57 0 0"
+                  rgba="0.866666666666667 0.909803921568627 1 1"/>
+              </body>
+            </body>
+          </body>
+        </body>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <position name="right_base_joint_act"       joint="right_base_joint"       kp="10" kv="0.5"/>
+    <position name="right_base_pitch_joint_act" joint="right_base_pitch_joint" kp="10" kv="0.5"/>
+    <position name="R1_joint_act"               joint="R1_joint"               kp="10" kv="0.5"/>
+    <position name="R2_joint_act"               joint="R2_joint"               kp="10" kv="0.5"/>
+    <position name="R3_joint_act"               joint="R3_joint"               kp="10" kv="0.5"/>
+    <position name="left_base_yaw_joint_act"    joint="left_base_yaw_joint"    kp="10" kv="0.5"/>
+    <position name="left_base_pitch_joint_act"  joint="left_base_pitch_joint"  kp="10" kv="0.5"/>
+    <position name="L1_joint_act"               joint="L1_joint"               kp="10" kv="0.5"/>
+    <position name="L2_joint_act"               joint="L2_joint"               kp="10" kv="0.5"/>
+    <position name="L3_joint_act"               joint="L3_joint"               kp="10" kv="0.5"/>
+  </actuator>
+</mujoco>
