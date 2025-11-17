@@ -117,7 +117,7 @@ def main():
         t0 = time.time()
         next_ui_sync = t0
         next_resample = t0 + args.resample
-        while viewer.is_running() and (time.time() - t0) < args.simtime:
+        while viewer.is_running():
             now = time.time()
 
             if now >= next_resample:
@@ -125,7 +125,7 @@ def main():
                 next_resample = now + args.resample
 
             # PD control
-            apply_pd_torques(model, data, pairs, qpos_target, args.kp, args.kd)
+            # apply_pd_torques(model, data, pairs, qpos_target, args.kp, args.kd)
 
             # Step simulation
             mj.mj_step(model, data)
