@@ -1,0 +1,58 @@
+# The Husky-Beta config file, containing the parameters for the simulation environment.
+
+mode: train
+
+task:
+  name: Isaac-Repose-Cube-Allegro-Direct-v0
+  num_envs: 4096
+  resume: false 
+  run_folder: 2025-11-29_12-11-48
+  checkpoint: model_3800.pt
+
+play:
+  folder: 2025-11-29_12-11-48
+  checkpoint: model_3800.pt
+
+sim:
+  env_path: miniconda3/envs/isaac450/lib/python3.10/site-packages/isaacsim/exts/isaacsim.examples.interactive/isaacsim/examples/interactive/user_examples
+  scripts: ["huskyb_example.py", "huskyb_example_extension.py"]
+
+convert:
+  urdf_in: sslab-robots/husky_beta/urdf/huskyb_full.urdf
+  usd_out: sslab-robots/husky_beta/usd/huskyb_full/huskyb_full.usd
+
+visuals:
+  enable: true
+  video_length: 400
+  video_interval: 10000
+
+slurm:
+  job_name: sslab_hb_rl
+  nodes: 1
+  tasks_per_node: 1
+  cpus_per_task: 2
+  gres: gpu:t4:1
+  mem: 128GB
+  partition: gpu
+  time: "8:00:00"
+  output: "/projects/siliconsynapselab/sslab_isaaclab/hpc_logs/huskyb/output_%j.txt"
+  error:  "/projects/siliconsynapselab/sslab_isaaclab/hpc_logs/huskyb/error_%j.txt"
+  mail_user: "$USER@northeastern.edu"
+  mail_type: "ALL"
+
+container:
+  docker_user: arjunviswanathan        # your Docker Hub username
+  image_name: sslab-isaaclab           # repo name on Docker Hub
+  image_tag: 20250911-141239
+  convert:
+    urdf_in: /workspace/sslab-robots/husky_beta/urdf/huskyb.urdf
+    usd_out: /workspace/sslab-robots/husky_beta/usd/huskyb.usd
+
+hpc:
+  user: viswanathan.ar
+  host: login.explorer.northeastern.edu
+  project_dir: /projects/siliconsynapselab/sslab_isaaclab
+  container_dir: /projects/siliconsynapselab/containers
+  run_dir_base: /projects/siliconsynapselab/sslab_isaaclab/logs  # logs/checkpoints bind here
+  apptainer_cache: /projects/siliconsynapselab/container_images/cache
+  apptainer_tmp: /projects/siliconsynapselab/container_images/tmp
