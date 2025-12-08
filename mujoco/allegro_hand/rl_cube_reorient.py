@@ -138,22 +138,45 @@ class AllegroHandEnv:
         """
         mujoco.mj_resetData(self.model, self.data)
         
-        # Hand joints use default positions from XML (qpos0)
-        # No randomization - policy was trained with fixed initial config
+        # Set initial joint positions to match Isaac Lab
+        # All joints at 0 except thumb_joint_0 (thj0) at 0.28
+        for i, jnt_id in enumerate(self.joint_ids):
+            qpos_adr = self.model.jnt_qposadr[jnt_id]
+            if self.JOINT_NAMES[i] == "thj0":
+                self.data.qpos[qpos_adr] = 0.28
+            else:
+                self.data.qpos[qpos_adr] = 0.0
         
-        # Set cube position: just above the palm
-        # The cube body is already positioned at (0, 0, 0.08) in scene.xml
-        # Reset the freejoint to identity orientation at that position
+        # Set cube position relative to palm
         if self.object_body_id != -1:
-            # Find the freejoint for the object
+            # Get palm body id and its position/orientation
+            palm_body_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "palm")
+            
+            # Run forward kinematics to get palm world position
+            mujoco.mj_forward(self.model, self.data)
+            
+            palm_pos = self.data.xpos[palm_body_id].copy()
+            palm_quat = self.data.xquat[palm_body_id].copy()  # w, x, y, z
+            
+            # Convert palm quaternion to rotation matrix
+            palm_rot = Rotation.from_quat([palm_quat[1], palm_quat[2], palm_quat[3], palm_quat[0]])
+            palm_rot_matrix = palm_rot.as_matrix()
+            
+            # Cube offset in palm's local frame (in front of palm)
+            # Adjust this offset based on where the cube should be
+            local_offset = np.array([0.0, 0.0, 0.15])  # 15cm in front of palm
+            
+            # Transform to world frame
+            cube_pos = palm_pos + palm_rot_matrix @ local_offset
+            
+            # Find the freejoint for the object and set its position
             for j in range(self.model.njnt):
                 if (self.model.jnt_type[j] == mujoco.mjtJoint.mjJNT_FREE and
                     self.model.jnt_bodyid[j] == self.object_body_id):
                     qpos_adr = self.model.jnt_qposadr[j]
                     # Freejoint qpos: [x, y, z, qw, qx, qy, qz]
-                    # Position: keep default from XML (0, 0, 0.08)
-                    self.data.qpos[qpos_adr:qpos_adr+3] = [0.0, 0.0, 0.08]
-                    # Orientation: identity quaternion
+                    self.data.qpos[qpos_adr:qpos_adr+3] = cube_pos
+                    # Identity orientation
                     self.data.qpos[qpos_adr+3:qpos_adr+7] = [1.0, 0.0, 0.0, 0.0]
                     # Zero velocities
                     dof_adr = self.model.jnt_dofadr[j]
@@ -201,6 +224,8 @@ class AllegroHandEnv:
         
         pos = self.data.xpos[self.object_body_id].copy()
         quat = self.data.xquat[self.object_body_id].copy()
+
+        print(f"Cube pos: {pos}, quat: {quat}")
         
         # Get velocities from freejoint
         lin_vel = np.zeros(3)
@@ -357,7 +382,7 @@ def run_deployment(env: AllegroHandEnv):
             # Check if goal reached, resample if so
             if env.check_success_and_resample():
                 goals_reached += 1
-                print(f"Goal {goals_reached} reached! New goal sampled.")
+                # print(f"Goal {goals_reached} reached! New goal sampled.")
             
             step += 1
             viewer.sync()
@@ -365,7 +390,7 @@ def run_deployment(env: AllegroHandEnv):
             # Periodic status update
             if step % 500 == 0:
                 error = env.get_orientation_error()
-                print(f"Step {step}: orientation_error={error:.4f} rad, goals_reached={goals_reached}")
+                # print(f"Step {step}: orientation_error={error:.4f} rad, goals_reached={goals_reached}")
 
 
 def main():

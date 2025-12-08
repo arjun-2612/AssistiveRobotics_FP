@@ -23,7 +23,7 @@
     <geom name="floor" pos="0 0 -0.1" size="0 0 0.05" type="plane" material="groundplane"/>
     
     <!-- Dex cube for reorientation task -->
-    <body name="object" pos="0 0 0.08">
+    <body name="object" pos="-0.02 0.0 0.15">
       <freejoint name="object_joint"/>
       <geom name="cube" type="box" size="0.025 0.025 0.025" 
             mass="0.05" material="cube_mat"
