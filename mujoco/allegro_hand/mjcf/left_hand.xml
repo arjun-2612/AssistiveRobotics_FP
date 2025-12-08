@@ -5,8 +5,8 @@
 
   <default>
     <default class="allegro_left">
-      <joint axis="0 1 0" damping=".1"/>
-      <position kp="1"/>
+      <joint axis="0 1 0" damping="0.1"/>
+      <position kp="3" kv="0.1" forcerange="-0.5 0.5"/>
       <geom density="800"/>
 
       <default class="visual">
