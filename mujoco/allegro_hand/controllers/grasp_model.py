@@ -17,7 +17,7 @@ class GraspMatrix:
     
     The grasp matrix relates:
     - Object twist ν to contact velocities: ċ = G^T ν
-    - Contact forces f to object wrench: w = G f
+    - Contact forces f to object wrench: w = G^T f
     """
     
     def __init__(self, n_contacts: int = 4):
@@ -44,7 +44,7 @@ class GraspMatrix:
             object_position: Object center position (3D vector)
             
         Returns:
-            G: Grasp matrix (6x3n)
+            G: Grasp matrix (3nx6)
         """
         # Reshape if flat array
         if contact_positions.ndim == 1:
@@ -54,16 +54,16 @@ class GraspMatrix:
             f"Expected {self.n_contacts} contacts, got {contact_positions.shape[0]}"
         
         # Initialize grasp matrix
-        G = np.zeros((6, 3 * self.n_contacts))
+        G = np.zeros((3 * self.n_contacts, 6))
         
         for i in range(self.n_contacts):
             c_i = contact_positions[i]  # Contact position
             r_i = c_i - object_position # Position vector from object center to contact
             
             # Build G_i block (6x3)
-            G[0:3, 3*i:3*i+3] = np.eye(3)   # Top 3 rows: identity (force contribution)
+            G[3*i:3*i+3, 0:3] = np.eye(3)   # Force contribution
             
-            G[3:6, 3*i:3*i+3] = self._skew_symmetric(r_i)   # Bottom 3 rows: skew-symmetric of r_i (torque contribution)
+            G[3*i:3*i+3, 3:6] = self._skew_symmetric(r_i)   # Bottom 3 rows: skew-symmetric of r_i (torque contribution)
             
         self.G = G
         return G
@@ -116,7 +116,7 @@ class GraspMatrix:
         """
         Map contact forces to object wrench (Equation 3).
         
-        w = G f
+        w = G^T f
         
         Args:
             contact_forces: f ∈ R^(3n) - forces at all contacts
@@ -128,8 +128,8 @@ class GraspMatrix:
         assert contact_forces.shape == (3 * self.n_contacts,), \
             f"Expected {3 * self.n_contacts} force components"
         
-        # w = G f
-        object_wrench = self.G @ contact_forces
+        # w = G^T f
+        object_wrench = self.G.T @ contact_forces
         
         return object_wrench
     
