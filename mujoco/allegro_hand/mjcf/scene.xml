@@ -14,7 +14,9 @@
     <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
       markrgb="0.8 0.8 0.8" width="300" height="300"/>
     <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
-    <material name="cube_mat" rgba="0.2 0.6 0.8 1"/>
+
+    <texture name="cube_surface" file="assets/iris_block.png" gridsize="3 4" gridlayout=".U..LFRB.D.."/>
+    <material name="cube_mat" texture="cube_surface" specular="0.5" shininess="0.25"/>
   </asset>
 
   <worldbody>
@@ -23,11 +25,12 @@
     <geom name="floor" pos="0 0 -0.1" size="0 0 0.05" type="plane" material="groundplane"/>
     
     <!-- Dex cube for reorientation task -->
-    <body name="object" pos="-0.02 0.0 0.15">
-      <freejoint name="object_joint"/>
-      <geom name="cube" type="box" size="0.025 0.025 0.025" 
-            mass="0.05" material="cube_mat"
-            condim="6" priority="1" friction="0.7 0.005 0.0001"/>
+    <body name="object" pos="-0.02 0.00 0.22">
+      <freejoint/>
+      <geom name="object_geom" type="box" size="0.025 0.025 0.025" 
+        material="cube_mat" condim="6" priority="1" 
+        friction="0.8 0.005 0.005" mass="0.1"/>
+      <site name="object_center" pos="0 0 0" size="0.005" rgba="1 0 0 1"/>
     </body>
   </worldbody>
 </mujoco>
