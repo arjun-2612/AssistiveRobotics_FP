@@ -107,6 +107,43 @@ class InternalForceOptimizer:
         
         return f_int, info
     
+
+    def compute_desired_acceleration(self, object_state, target_position, target_velocity,
+                                 target_orientation=None, target_angular_vel=None,
+                                 Kp_pos=10.0, Kd_pos=5.0, Kp_rot=5.0, Kd_rot=2.0):
+        """
+        Compute desired object acceleration using PD control.
+        
+        Similar to quadruped COM control, but for manipulated object.
+        """
+        from controllers.object_state import ObjectPoseEstimator
+
+        # Current state
+        current_pos = object_state['position']
+        current_vel = object_state['velocity']
+        current_ang_vel = object_state['angular_velocity']
+        
+        # Linear acceleration (PD control for position)
+        pos_error = target_position - current_pos
+        vel_error = target_velocity - current_vel
+        ddx_des = Kp_pos * pos_error + Kd_pos * vel_error
+        
+        # Angular acceleration (PD control for orientation)
+
+        current_quat = object_state.get('orientation', np.array([1, 0, 0, 0]))
+        target_euler = ObjectPoseEstimator._quat_to_euler(target_orientation)
+        current_euler = ObjectPoseEstimator._quat_to_euler(current_quat)
+        theta_error = target_euler - current_euler
+
+        omega_error = target_angular_vel - current_ang_vel
+        alpha_des = Kp_rot * theta_error + Kd_rot * omega_error
+        
+        # Combine and clamp
+        desired_acc = np.hstack([ddx_des, alpha_des])
+        desired_acc = np.clip(desired_acc, -10.0, 10.0)  # Safety limits
+        
+        return desired_acc
+    
     def _solve_qp(self, f_d: np.ndarray, G_T: np.ndarray, w_dyn: np.ndarray, 
                 contact_normals: Optional[np.ndarray] = None) -> Tuple[np.ndarray, dict]:
         """
@@ -269,7 +306,7 @@ class InternalForceOptimizer:
         )
     
     def compute_dynamic_wrench(self, object_state: dict, desired_acceleration: np.ndarray,
-                              mass_matrix: np.ndarray) -> np.ndarray:
+                              gravity: float = -9.81) -> np.ndarray:
         """
         Compute dynamic object wrench (Equation 15).
         
@@ -285,12 +322,37 @@ class InternalForceOptimizer:
         Returns:
             w_dyn: Dynamic wrench ∈ R^6
         """
-        # Simple version: w_dyn = M_o * ẍ
-        w_dyn = mass_matrix @ desired_acceleration
+        # Extract object properties
+        mass = object_state.get('mass', 0.1)  # kg
+        inertia = object_state.get('inertia', np.eye(3) * 0.001)  # 3x3 inertia tensor
+        velocity = object_state.get('velocity', np.zeros(3))  # Linear velocity
+        angular_velocity = object_state.get('angular_velocity', np.zeros(3))  # Angular velocity
         
-        # TODO: Add gravity and Coriolis terms
-        # g_o = [0, 0, -m*g, 0, 0, 0]
-        # C_o = ...
+        # Construct mass matrix M_o ∈ R^(6×6)
+        # M_o = [m*I_3    0  ]
+        #       [  0    I_o ]
+        M_o = np.zeros((6, 6))
+        M_o[:3, :3] = mass * np.eye(3)  # Mass for linear motion
+        M_o[3:, 3:] = inertia  # Inertia tensor for rotational motion
+        
+        # 1. Inertial forces: M_o * ẍ
+        w_inertial = M_o @ desired_acceleration
+        
+        # 2. Coriolis/centrifugal forces: C_o(x, ẋ) * ẋ
+        # For linear motion: negligible
+        # For rotational motion: ω × (I_o * ω)
+        angular_momentum = inertia @ angular_velocity
+        w_coriolis = np.zeros(6)
+        w_coriolis[3:] = np.cross(angular_velocity, angular_momentum)
+        
+        # 3. Gravitational wrench: g_o
+        # Gravity only affects linear motion in z-direction
+        g_o = np.zeros(6)
+        g_o[2] = mass * abs(gravity)  # Upward force to compensate gravity
+        # Note: gravity is negative (-9.81), so we use abs() to get positive upward force
+        
+        # Total dynamic wrench (Equation 15)
+        w_dyn = w_inertial + w_coriolis + g_o
         
         return w_dyn
     
