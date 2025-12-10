@@ -126,7 +126,7 @@ with viewer.launch_passive(model, data) as v:
             G = grasp_model.compute_grasp_matrix(contact_pos_flat, object_position)
             
             # 4. Compute desired wrench (just gravity compensation)
-            target_pos = object_state['position']  # Stay at current position (static holding)
+            target_pos = np.array([-0.02, 0.00, 0.22])  # Stay at current position (static holding)
             target_vel = np.zeros(3)  # Zero velocity
             target_angular_vel = np.zeros(3)
             target_orientation = np.array([1, 0, 0, 0])
@@ -193,7 +193,7 @@ with viewer.launch_passive(model, data) as v:
                 print(f"  f_contact magnitude: {np.linalg.norm(f_computed):.3f}")
             
             # τ = J^T f
-            tau_qp = J.T @ f_computed
+            tau_qp = J.T @ -f_computed
 
             # 8. Compute nullspace torque to maintain finger configuration
             tau_null_raw = nullspace_controller.compute_nullspace_torque(
