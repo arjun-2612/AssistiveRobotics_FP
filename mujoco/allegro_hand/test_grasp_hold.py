@@ -86,7 +86,7 @@ print("\nPress ENTER to start...")
 input()
 
 # Control parameters
-desired_squeeze = 0.25  # Desired internal squeeze force (N)
+desired_squeeze = 1.0  # Desired internal squeeze force (N)
 initial_object_height = data.xpos[object_body_id][2]
 
 # Get target positions from keyframe for position holding
@@ -130,10 +130,18 @@ with viewer.launch_passive(model, data) as v:
             target_vel = np.zeros(3)  # Zero velocity
             target_angular_vel = np.zeros(3)
             target_orientation = np.array([1, 0, 0, 0])
-            desired_acc = qp_optimizer.compute_desired_acceleration(object_state, target_pos, target_vel, target_orientation=target_orientation, target_angular_vel=target_angular_vel)
+            desired_acc = qp_optimizer.compute_desired_acceleration(
+                object_state, 
+                target_pos, 
+                target_vel, 
+                target_orientation=target_orientation, 
+                target_angular_vel=target_angular_vel,
+                Kp_pos=150.0,  # Increased for stronger position holding
+                Kd_pos=20.0,   # Increased for better damping
+                Kp_rot=5.0, 
+                Kd_rot=2.0,
+            )
             w_desired = qp_optimizer.compute_dynamic_wrench(object_state, desired_acc, gravity=gravity)
-            # w_desired = np.array([0, 0, weight, 0, 0, 0])
-
             
             # 5. Desired internal forces (squeeze to maintain grasp)
             f_d_normals = np.ones(n_contacts) * desired_squeeze
@@ -145,27 +153,6 @@ with viewer.launch_passive(model, data) as v:
                 desired_normal_forces=f_d_normals,
                 contact_normals=contact_normals
             )
-            # Print optimal forces
-            if step % 10 == 0:
-                print(f"\n{'='*60}")
-                print(f"QP Optimal Forces (step {step}):")
-                print(f"  Status: {info['qp_status']}, Optimal: {info['qp_optimal']}")
-                print(f"\nContact forces breakdown:")
-                for i in range(n_contacts):
-                    f_i = f_computed[3*i:3*(i+1)]
-                    n_i = contact_normals[i]
-                    
-                    # Normal component
-                    f_n = np.dot(f_i, n_i)
-                    # Tangential component
-                    f_tangent = f_i - f_n * n_i
-                    f_t_mag = np.linalg.norm(f_tangent)
-                    
-                    print(f"  Contact {i+1}:")
-                    print(f"    Position: {contact_positions[i]}")
-                    print(f"    Force vector: [{f_i[0]:6.3f}, {f_i[1]:6.3f}, {f_i[2]:6.3f}] N")
-                    print(f"    Normal force: {f_n:.3f} N (desired: {f_d_normals[i]:.3f} N)")
-                    print(f"    Tangential: {f_t_mag:.3f} N (friction ratio: {f_t_mag/(f_n+1e-10):.3f})")
             
             # 7. Compute joint torques via Jacobian
             J_list = []
@@ -183,15 +170,7 @@ with viewer.launch_passive(model, data) as v:
             # Stack all contact Jacobians
             J = np.vstack(J_list)
             J = J[:, :16]  # Only hand joints
-            
-
-            # DEBUG: Print Jacobian info
-            if step % 10 == 0:
-                print(f"\nJacobian Debug:")
-                print(f"  J shape: {J.shape}")
-                print(f"  J max magnitude: {np.abs(J).max():.6f}")
-                print(f"  f_contact magnitude: {np.linalg.norm(f_computed):.3f}")
-            
+                        
             # τ = J^T f
             tau_qp = J.T @ -f_computed
 
@@ -230,16 +209,40 @@ with viewer.launch_passive(model, data) as v:
                 w_actual = G.T @ f_computed
                 wrench_error = np.linalg.norm(w_actual - w_desired)
                 
+                # print(f"\n{'='*60}")
+                # print(f"QP Optimal Forces (step {step}):")
+                # print(f"  Status: {info['qp_status']}, Optimal: {info['qp_optimal']}")
+                # print(f"\nContact forces breakdown:")
+                for i in range(n_contacts):
+                    f_i = f_computed[3*i:3*(i+1)]
+                    n_i = contact_normals[i]
+                    
+                    # Normal component
+                    f_n = np.dot(f_i, n_i)
+                    # Tangential component
+                    f_tangent = f_i - f_n * n_i
+                    f_t_mag = np.linalg.norm(f_tangent)
+                    
+                    print(f"  Contact {i+1}:")
+                    print(f"    Position: {contact_positions[i]}")
+                    print(f"    Force vector: [{f_i[0]:6.3f}, {f_i[1]:6.3f}, {f_i[2]:6.3f}] N")
+                    print(f"    Normal force: {f_n:.3f} N (desired: {f_d_normals[i]:.3f} N)")
+                    print(f"    Tangential: {f_t_mag:.3f} N (friction ratio: {f_t_mag/(f_n+1e-10):.3f})")
+
+                # print(f"\nJacobian Debug:")
+                # print(f"  J shape: {J.shape}")
+                # print(f"  J max magnitude: {np.abs(J).max():.6f}")
+                print(f"  f_contact magnitude: {np.linalg.norm(f_computed.reshape(-1, 3), axis=1)}")
+
                 print(f"\n{'='*60}")
                 print(f"Step {step}:")
                 print(f"  Contacts: {len(contacts)}")
-                print(f"  QP status: {info['qp_status']}, optimal: {info['qp_optimal']}")
+                # print(f"  QP status: {info['qp_status']}, optimal: {info['qp_optimal']}")
                 print(f"\nObject State:")
                 print(f"  Height: {obj_height:.4f} m (error: {height_error*1000:.2f} mm)")
                 print(f"  Velocity: {obj_vel:.4f} m/s")
                 print(f"\nWrench:")
                 print(f"  Desired: {w_desired}")
-                print(f"  Actual:  {w_actual}")
                 print(f"  Error: {wrench_error:.4f}")
                 print(f"  QP torque range: [{tau_qp.min():.2f}, {tau_qp.max():.2f}] Nm")
                 

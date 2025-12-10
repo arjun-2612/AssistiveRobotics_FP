@@ -30,7 +30,7 @@ def print_contact_info(model: mj.MjModel, data: mj.MjData):
         body2_name = model.body(model.geom_bodyid[contact.geom2]).name
         
         # Create unique key for this body pair
-        key = tuple(sorted([body1_name, body2_name]))
+        key = tuple(sorted([body1_name, body2_name])) 
         if key not in contact_groups:
             contact_groups[key] = []
         contact_groups[key].append(i)
@@ -63,7 +63,7 @@ def get_object_position(model: mj.MjModel, data: mj.MjData) -> np.ndarray | None
 
 def reset_to_initial_grasp(model: mj.MjModel, data: mj.MjData):
     """Reset MuJoCo state using the 'initial_grasp_cube' keyframe."""
-    key_id = mj.mj_name2id(model, mj.mjtObj.mjOBJ_KEY, 'initial_grasp_cube')
+    key_id = mj.mj_name2id(model, mj.mjtObj.mjOBJ_KEY, 'initial_grasp')
     if key_id < 0:
         raise RuntimeError("Keyframe 'initial_grasp_cube' not found in scene.xml")
     mj.mj_resetDataKeyframe(model, data, key_id)

@@ -140,7 +140,7 @@ class InternalForceOptimizer:
         
         # Combine and clamp
         desired_acc = np.hstack([ddx_des, alpha_des])
-        desired_acc = np.clip(desired_acc, -10.0, 10.0)  # Safety limits
+        desired_acc = np.clip(desired_acc, -50.0, 50.0)  # Safety limits (increased for stronger control)
         
         return desired_acc
     
