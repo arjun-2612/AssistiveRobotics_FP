@@ -93,7 +93,7 @@ class InternalForceOptimizer:
         
         n_dim = 3 * self.n_contacts
         I = np.eye(n_dim)
-        nullspace_proj = I - GT @ G_T_pinv
+        nullspace_proj = I - G_pinv @ G
 
         f_star, qp_info = self._solve_qp(f_d, GT, f_dyn, nullspace_proj, contact_normals)
         f_int = f_dyn + nullspace_proj @ f_star
@@ -141,7 +141,7 @@ class InternalForceOptimizer:
         
         # Combine and clamp
         desired_acc = np.hstack([ddx_des, alpha_des])
-        desired_acc = np.clip(desired_acc, -10.0, 10.0)  # Safety limits (increased for stronger control)
+        desired_acc = np.clip(desired_acc, -3.0, 3.0)  # Safety limits (increased for stronger control)
         
         return desired_acc
     

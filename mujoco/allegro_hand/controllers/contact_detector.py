@@ -58,7 +58,7 @@ class ContactDetector:
             
     def get_object_contacts(self, data: mj.MjData) -> List[Dict]:
         """
-        Get all contacts involving the object.
+        Get all contacts involving the object and fingertips only.
         
         Args:
             data: MuJoCo data
@@ -72,7 +72,11 @@ class ContactDetector:
                 - 'body_name': Name of the finger body
                 - 'geom1', 'geom2': Geom IDs
         """
-        contacts = []
+    
+        # Define fingertip body names (adjust these to match your model)
+        fingertip_names = {'ff_tip', 'mf_tip', 'rf_tip', 'th_tip'}
+        # Dictionary to store best contact per fingertip
+        best_contacts = {}
         
         for i in range(data.ncon):
             contact = data.contact[i]
@@ -92,20 +96,37 @@ class ContactDetector:
                 continue  # Not an object contact
 
             body_name = self.model.body(finger_body_id).name
+
+            # Filter: only keep fingertip contacts
+            if body_name not in fingertip_names:
+                continue
                 
+                # Get contact force magnitude (penetration depth as proxy)
+            penetration = -contact.dist  # Negative distance = penetration
+            
             # Extract contact information
             contact_info = {
                 'position': contact.pos.copy(),
                 'normal': contact.frame[:3].copy() * normal_sign,
                 'distance': contact.dist,
                 'body_id': finger_body_id,
-                'body_name': self.model.body(finger_body_id).name,
+                'body_name': body_name,
                 'finger': self._identify_finger(body_name),
                 'geom1': contact.geom1,
-                'geom2': contact.geom2
+                'geom2': contact.geom2,
+                'penetration': penetration
             }
             
-            contacts.append(contact_info)
+            # Keep only the contact with maximum penetration per fingertip
+            if body_name not in best_contacts or penetration > best_contacts[body_name]['penetration']:
+                best_contacts[body_name] = contact_info
+        
+        # Return list of contacts (without penetration field)
+        contacts = []
+        for body_name in sorted(best_contacts.keys()):  # Sort for consistent ordering
+            contact = best_contacts[body_name]
+            contact.pop('penetration')  # Remove temporary field
+            contacts.append(contact)
             
         return contacts
     

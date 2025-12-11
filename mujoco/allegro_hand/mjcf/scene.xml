@@ -54,22 +54,22 @@
     <light pos="0.3 0 1.5" dir="0 0 -1" directional="true"/>
     <geom name="floor" pos="0 0 -0.1" size="0 0 0.05" type="plane" material="groundplane"/>
     
-    <!-- Object positioned between fingers in the air -->
+    <!-- Object positioned between fingers in the air
     <body name="object" pos="-0.02 0.00 0.22">
       <freejoint/>
       <geom name="object_geom" type="sphere" size="0.04 0.03 0.05" rgba="0.5 0.7 0.5 1" 
         condim="6" priority="1" friction="0.7 0.005 0.005" mass="0.1"/>
         <site name="object_center" pos="0 0 0" size="0.005" rgba="1 0 0 1"/>
-    </body> 
+    </body>  -->
 
-  <!-- Cube object positioned between fingers
+  <!-- Cube object positioned between fingers -->
     <body name="object" pos="-0.02 0.00 0.22">
       <freejoint/>
       <geom name="object_geom" type="box" size="0.025 0.025 0.025" 
         material="cube_mat" condim="6" priority="1" 
         friction="0.8 0.005 0.005" mass="0.1"/>
       <site name="object_center" pos="0 0 0" size="0.005" rgba="1 0 0 1"/>
-    </body> -->
+    </body>
 
   </worldbody>
 </mujoco>

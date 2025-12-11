@@ -17,6 +17,7 @@ from controllers.grasp_model import GraspMatrix
 from controllers.QP import InternalForceOptimizer
 from controllers.object_state import ObjectPoseEstimator
 from controllers.nullspace_controller import NullspaceController
+from controllers.impedance_controller import ImpedanceController
 
 
 print("=" * 70)
@@ -28,7 +29,7 @@ model = mj.MjModel.from_xml_path('mjcf/scene.xml')
 data = mj.MjData(model)
 
 # Reset to initial grasp
-keyframe_id = mj.mj_name2id(model, mj.mjtObj.mjOBJ_KEY, 'initial_grasp')
+keyframe_id = mj.mj_name2id(model, mj.mjtObj.mjOBJ_KEY, 'initial_grasp_cube')
 mj.mj_resetDataKeyframe(model, data, keyframe_id)
 mj.mj_forward(model, data)
 
@@ -48,15 +49,15 @@ print(f"✓ Object mass: {object_mass:.3f} kg")
 print(f"✓ Weight: {weight:.3f} N")
 
 # Get initial contacts
-contacts = contact_detector.get_object_contacts(data)
-print(f"✓ Initial contacts: {len(contacts)}")
+init_contacts = contact_detector.get_object_contacts(data)
+print(f"✓ Initial contacts: {len(init_contacts)}")
 
-if len(contacts) < 2:
+if len(init_contacts) < 2:
     print("⚠ Need at least 2 contacts! Adjust keyframe.")
     sys.exit(1)
 
 # Initialize grasp matrix and QP optimizer
-n_contacts = len(contacts)
+n_contacts = len(init_contacts)
 grasp_model = GraspMatrix(n_contacts=n_contacts)
 qp_optimizer = InternalForceOptimizer(
     n_contacts=n_contacts,
@@ -71,6 +72,14 @@ nullspace_controller = NullspaceController(
     K_null=5.0,   # Stiffness 
     D_null=0.5    # Damping
 )
+
+impedance_controller = ImpedanceController(
+    n_contacts=n_contacts,
+    contact_damping=0.1,
+    contact_stiffness=10.0,
+)
+c0 = np.array([c['position'] for c in init_contacts]).flatten()
+impedance_controller.set_initial_contacts(c0)
 
 print(f"✓ QP optimizer initialized with {n_contacts} contacts\n")
 print(f"✓ Nullspace controller initialized\n")
@@ -93,6 +102,28 @@ initial_object_height = data.xpos[object_body_id][2]
 key = model.key(keyframe_id)
 q_target = key.qpos[:16].copy()  # Target joint positions
 
+def quat_to_euler_zyx(q: np.ndarray) -> np.ndarray:
+    """
+    Convert quaternion to ZYX Euler angles: roll (x), pitch (y), yaw (z).
+
+    q is [w, x, y, z] as in MuJoCo.
+    """
+    w, x, y, z = q
+
+    # Rotation matrix R = Rz(yaw) * Ry(pitch) * Rx(roll)
+    R = np.array([
+        [1 - 2*(y**2 + z**2),     2*(x*y - z*w),         2*(x*z + y*w)],
+        [2*(x*y + z*w),           1 - 2*(x**2 + z**2),   2*(y*z - x*w)],
+        [2*(x*z - y*w),           2*(y*z + x*w),         1 - 2*(x**2 + y**2)]
+    ])
+
+    # ZYX convention
+    yaw = np.arctan2(R[1, 0], R[0, 0])
+    pitch = np.arcsin(-R[2, 0])
+    roll = np.arctan2(R[2, 1], R[2, 2])
+
+    return np.array([roll, pitch, yaw])
+
 with viewer.launch_passive(model, data) as v:
     v.opt.flags[mj.mjtVisFlag.mjVIS_CONTACTPOINT] = True
     v.opt.flags[mj.mjtVisFlag.mjVIS_CONTACTFORCE] = True
@@ -102,6 +133,9 @@ with viewer.launch_passive(model, data) as v:
     while v.is_running():
         # 1. Get current contacts
         contacts = contact_detector.get_object_contacts(data)
+        fingers_in_contact = [c['body_id'] for c in contacts]
+        fingers_in_c0 = [c['body_id'] for c in init_contacts]
+        fingers_lost = set(fingers_in_c0) - set(fingers_in_contact)
         
         if len(contacts) >= 2:
             # 2. Estimate object state
@@ -117,10 +151,38 @@ with viewer.launch_passive(model, data) as v:
             # 3. Build grasp matrix
             contact_positions = np.array([c['position'] for c in contacts])
             contact_normals = np.array([c['normal'] for c in contacts])
+
+            # FIX: Ensure all normals point from object toward fingers (outward)
+            for i in range(len(contact_normals)):
+                # Vector from object center to contact point
+                to_contact = contact_positions[i] - object_position
+                
+                # If normal points toward object center, flip it
+                if np.dot(contact_normals[i], to_contact) < 0:
+                    contact_normals[i] = -contact_normals[i]
             
             n_contacts = len(contacts)
             grasp_model.n_contacts = n_contacts
             qp_optimizer.n_contacts = n_contacts
+            impedance_controller.n_contacts = n_contacts
+
+            active_ids = {c['body_id'] for c in contacts}
+            c0_new_list = []
+
+            for i, c_init in enumerate(init_contacts):
+                body_id = c_init['body_id']
+                
+                if body_id in active_ids:
+                    # Extract the original 3D position from c0
+                    xyz = c0[3*i : 3*i+3]
+                    c0_new_list.append(xyz)
+
+            if c0_new_list:
+                c0_new = np.concatenate(c0_new_list)
+            else:
+                c0_new = np.zeros(0)   # no active contacts
+
+            impedance_controller.set_initial_contacts(c0_new)
             
             contact_pos_flat = contact_positions.flatten()
             G = grasp_model.compute_grasp_matrix(contact_pos_flat, object_position)
@@ -147,11 +209,25 @@ with viewer.launch_passive(model, data) as v:
             f_d_normals = np.ones(n_contacts) * desired_squeeze
             
             # 6. Solve QP
-            f_computed, info = qp_optimizer.compute_contact_forces(
+            f_int, info = qp_optimizer.compute_contact_forces(
                 desired_wrench=w_desired,
                 grasp_matrix=G,
                 desired_normal_forces=f_d_normals,
                 contact_normals=contact_normals
+            )
+
+            # 6b. Compute impedance controller forces
+            contact_vels = grasp_model.object_twist_to_contact_velocities(
+                np.concatenate([object_state['linear_velocity'], object_state['angular_velocity']]),
+            )
+            eul = quat_to_euler_zyx(object_state['orientation'])
+            f_impedance = impedance_controller.compute_contact_forces(
+                np.concatenate([object_state['position'], quat_to_euler_zyx(object_state['orientation'])]), 
+                np.concatenate([target_pos, quat_to_euler_zyx(target_orientation)]),
+                contact_pos_flat,
+                contact_vels,
+                G,
+                impedance_controller.compute_W_matrix(eul),
             )
             
             # 7. Compute joint torques via Jacobian
@@ -170,9 +246,11 @@ with viewer.launch_passive(model, data) as v:
             # Stack all contact Jacobians
             J = np.vstack(J_list)
             J = J[:, :16]  # Only hand joints
-                        
+
+            f_computed = f_impedance + f_int
+
             # τ = J^T f
-            tau_qp = J.T @ -f_computed
+            tau_imp_qp = J.T @ f_computed
 
             # 8. Compute nullspace torque to maintain finger configuration
             tau_null_raw = nullspace_controller.compute_nullspace_torque(
@@ -194,10 +272,10 @@ with viewer.launch_passive(model, data) as v:
             # print(f"  tau_null_raw shape: {tau_null_raw.shape}")
             
             # 9. Combine: τ_des = τ_contact + τ_null (Equation 30)
-            tau_total = tau_qp           
+            tau_total = tau_imp_qp #+ tau_null           
 
             # Apply torques (with safety limits)
-            data.ctrl[:16] = np.clip(tau_total, -5, 5)
+            data.ctrl[:16] = np.clip(tau_total, -0.5, 0.5)
             
             # Print status
             if step % 10 == 0:
@@ -244,7 +322,7 @@ with viewer.launch_passive(model, data) as v:
                 print(f"\nWrench:")
                 print(f"  Desired: {w_desired}")
                 print(f"  Error: {wrench_error:.4f}")
-                print(f"  QP torque range: [{tau_qp.min():.2f}, {tau_qp.max():.2f}] Nm")
+                print(f"  QP torque range: [{tau_total.min():.2f}, {tau_total.max():.2f}] Nm")
                 
                 if abs(obj_vel) < 0.001 and abs(height_error) < 0.002:
                     print(f"  ✓ Object stable!")
