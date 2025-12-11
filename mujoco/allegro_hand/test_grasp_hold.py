@@ -126,7 +126,7 @@ with viewer.launch_passive(model, data) as v:
             G = grasp_model.compute_grasp_matrix(contact_pos_flat, object_position)
             
             # 4. Compute desired wrench (just gravity compensation)
-            target_pos = np.array([-0.02, 0.00, 0.22])  # Stay at current position (static holding)
+            target_pos = np.array([-0.02, 0.00, 0.11])  # Stay at current position (static holding)
             target_vel = np.zeros(3)  # Zero velocity
             target_angular_vel = np.zeros(3)
             target_orientation = np.array([1, 0, 0, 0])
@@ -136,8 +136,8 @@ with viewer.launch_passive(model, data) as v:
                 target_vel, 
                 target_orientation=target_orientation, 
                 target_angular_vel=target_angular_vel,
-                Kp_pos=150.0,  # Increased for stronger position holding
-                Kd_pos=20.0,   # Increased for better damping
+                Kp_pos=20.0,  # Increased for stronger position holding
+                Kd_pos=10.0,   # Increased for better damping
                 Kp_rot=5.0, 
                 Kd_rot=2.0,
             )
@@ -206,7 +206,7 @@ with viewer.launch_passive(model, data) as v:
                 obj_vel = np.linalg.norm(data.qvel[16:19])
                 
                 # Verify wrench
-                w_actual = G.T @ f_computed
+                w_actual = G @ f_computed
                 wrench_error = np.linalg.norm(w_actual - w_desired)
                 
                 # print(f"\n{'='*60}")

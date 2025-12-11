@@ -10,6 +10,7 @@ Key equation (17): f = (G^T)^+ w + (I - G^T(G^T)^+) f_*
 
 import numpy as np
 from typing import Optional, Tuple
+from controllers.object_state import ObjectPoseEstimator
 try:
     import cvxpy as cp
     CVXPY_AVAILABLE = True
@@ -82,24 +83,26 @@ class InternalForceOptimizer:
                     f_d[3*i:3*i+3] = contact_normals[i] * 5.0  # 5N default
         
         # Solve QP for optimal f_* (Equation 18)
-        G_T = grasp_matrix.T
-        f_star, qp_info = self._solve_qp(f_d, G_T, w_dyn, contact_normals)
-        
+        G = grasp_matrix
+        GT = G.T
+        G_T_pinv = np.linalg.pinv(GT)
         # Compute final forces using Equation (19)
         # f_int = (G^T)^+ w_dyn + (I - G^T(G^T)^+) f_*
-        G_T_pinv = np.linalg.pinv(G_T)
-        f_wrench = G_T_pinv @ w_dyn
+        G_pinv = np.linalg.pinv(G)
+        f_dyn = G_pinv @ w_dyn
         
         n_dim = 3 * self.n_contacts
         I = np.eye(n_dim)
-        nullspace_proj = I - G_T_pinv @ G_T
-        
-        f_int = f_wrench + nullspace_proj @ f_star
+        nullspace_proj = I - GT @ G_T_pinv
+
+        f_star, qp_info = self._solve_qp(f_d, GT, f_dyn, nullspace_proj, contact_normals)
+        f_int = f_dyn + nullspace_proj @ f_star
         
         # Prepare info
         info = {
-            'f_wrench': f_wrench,                    # Wrench-generating component
-            'f_internal': nullspace_proj @ f_star,   # Internal force component
+            'f_int': f_int,                        # Full optimized contact forces
+            'f_dyn': f_dyn,                    # Wrench-generating component
+            'f_null_star': nullspace_proj @ f_star,   # Internal force component
             'f_star': f_star,                        # Optimized f_*
             'qp_status': qp_info['status'],
             'qp_optimal': qp_info['optimal']
@@ -116,8 +119,6 @@ class InternalForceOptimizer:
         
         Similar to quadruped COM control, but for manipulated object.
         """
-        from controllers.object_state import ObjectPoseEstimator
-
         # Current state
         current_pos = object_state['position']
         current_vel = object_state['velocity']
@@ -140,11 +141,11 @@ class InternalForceOptimizer:
         
         # Combine and clamp
         desired_acc = np.hstack([ddx_des, alpha_des])
-        desired_acc = np.clip(desired_acc, -50.0, 50.0)  # Safety limits (increased for stronger control)
+        desired_acc = np.clip(desired_acc, -10.0, 10.0)  # Safety limits (increased for stronger control)
         
         return desired_acc
     
-    def _solve_qp(self, f_d: np.ndarray, G_T: np.ndarray, w_dyn: np.ndarray, 
+    def _solve_qp(self, f_d: np.ndarray, G_T: np.ndarray, f_dyn: np.ndarray, N: np.ndarray,
                 contact_normals: Optional[np.ndarray] = None) -> Tuple[np.ndarray, dict]:
         """
         Solve the QP problem (Equations 18, 24-27).
@@ -153,12 +154,6 @@ class InternalForceOptimizer:
         we can reformulate as constraints directly on f_*.
         """
         n_dim = 3 * self.n_contacts
-        
-        # Precompute components for Equation (19)
-        G_T_pinv = np.linalg.pinv(G_T)
-        I = np.eye(n_dim)
-        N = I - G_T_pinv @ G_T  # Nullspace projection
-        f_wrench = G_T_pinv @ w_dyn
         
         # Decision variable: f_* ∈ R^(3n)
         f_star = cp.Variable(n_dim)
@@ -173,11 +168,11 @@ class InternalForceOptimizer:
             # Extract indices for contact i
             idx = slice(3*i, 3*(i+1))
             
-            # Compute f_int for contact i: f_int_i = f_wrench_i + N_i @ f_*
+            # Compute f_int for contact i: f_int_i = f_dyn_i + N_i @ f_*
             # This is affine in f_*, so CVXPY can handle it
-            f_wrench_i = f_wrench[idx]
+            f_dyn_i = f_dyn[idx]
             N_i = N[idx, :]
-            f_int_i = f_wrench_i + N_i @ f_star
+            f_int_i = f_dyn_i + N_i @ f_star
             
             if contact_normals is not None:
                 n_i = contact_normals[i]  # Normal vector
@@ -237,13 +232,13 @@ class InternalForceOptimizer:
             else:
                 print(f"⚠ QP solver status: {problem.status}")
                 # Try fallback: use desired forces
-                f_star_opt = f_d
+                f_star_opt = np.zeros(n_dim)
                 optimal = False
                 
         except Exception as e:
             print(f"❌ QP solver failed: {e}")
             # Fallback: use desired internal forces directly
-            f_star_opt = f_d
+            f_star_opt = np.zeros(n_dim)
             optimal = False
         
         info = {
@@ -364,49 +359,3 @@ class InternalForceOptimizer:
         """Update normal force limits."""
         self.f_min = f_min
         self.f_max = f_max
-
-
-class SimplifiedInternalForceComputer:
-    """
-    Simplified version without QP (for testing or when cvxpy not available).
-    
-    Uses Equation (17) directly with manually specified internal forces.
-    """
-    
-    def __init__(self, n_contacts: int = 2):
-        self.n_contacts = n_contacts
-        
-    def compute_contact_forces(self, desired_wrench: np.ndarray, grasp_matrix: np.ndarray,
-                               internal_forces: Optional[np.ndarray] = None) -> np.ndarray:
-        """
-        Compute contact forces using Equation (17) without optimization.
-        
-        f = (G^T)^+ w + (I - G^T(G^T)^+) f_*
-        
-        Args:
-            desired_wrench: w ∈ R^6
-            grasp_matrix: G ∈ R^(6×3n)
-            internal_forces: f_* ∈ R^(3n) (if None, uses zero)
-            
-        Returns:
-            f: Contact forces (3n,)
-        """
-        G_T = grasp_matrix.T
-        G_T_pinv = np.linalg.pinv(G_T)
-        
-        # Wrench-generating component
-        f_wrench = G_T_pinv @ desired_wrench
-        
-        # Internal force component
-        if internal_forces is None:
-            internal_forces = np.zeros(3 * self.n_contacts)
-            
-        n_dim = 3 * self.n_contacts
-        I = np.eye(n_dim)
-        nullspace_proj = I - G_T_pinv @ G_T
-        f_internal = nullspace_proj @ internal_forces
-        
-        # Total forces
-        f_total = f_wrench + f_internal
-        
-        return f_total
