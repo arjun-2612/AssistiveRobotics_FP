@@ -387,7 +387,7 @@ except KeyboardInterrupt:
     print(desired_pos.shape)
     print(actual_pos.shape)
     np.savez(
-        'grasp_hold_log.npz',
+        'logs/grasp_hold_log.npz',
         desired_pos=desired_pos,
         actual_pos=actual_pos,
         desired_lin_vel=desired_lin_vel,
