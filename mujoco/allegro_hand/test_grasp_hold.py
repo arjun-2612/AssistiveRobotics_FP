@@ -154,7 +154,7 @@ try:
             fingers_in_c0 = [c['body_id'] for c in init_contacts]
             fingers_lost = set(fingers_in_c0) - set(fingers_in_contact)
             # print(f"  Contacts: {fingers_in_contact}, lost: {fingers_lost}")
-            print([(c['body_id'], c['body_name']) for c in contacts])
+            # print([(c['body_id'], c['body_name']) for c in contacts])
             
             if len(contacts) >= 2:
                 # 2. Estimate object state

@@ -85,7 +85,6 @@ class InternalForceOptimizer:
         # Solve QP for optimal f_* (Equation 18)
         G = grasp_matrix
         GT = G.T
-        G_T_pinv = np.linalg.pinv(GT)
         # Compute final forces using Equation (19)
         # f_int = (G^T)^+ w_dyn + (I - G^T(G^T)^+) f_*
         G_pinv = np.linalg.pinv(G)
@@ -96,7 +95,7 @@ class InternalForceOptimizer:
         nullspace_proj = I - G_pinv @ G
 
         f_star, qp_info = self._solve_qp(f_d, GT, f_dyn, nullspace_proj, contact_normals)
-        f_int = f_dyn + nullspace_proj @ f_star
+        f_int = f_dyn + nullspace_proj @ -f_star
         
         # Prepare info
         info = {
