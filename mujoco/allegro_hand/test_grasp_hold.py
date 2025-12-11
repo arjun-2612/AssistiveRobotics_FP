@@ -253,26 +253,15 @@ with viewer.launch_passive(model, data) as v:
             tau_imp_qp = J.T @ f_computed
 
             # 8. Compute nullspace torque to maintain finger configuration
-            tau_null_raw = nullspace_controller.compute_nullspace_torque(
+            tau_total = nullspace_controller.compute_full_pipeline(
+                tau_contact=tau_imp_qp,
                 joint_positions=data.qpos[:16],
                 joint_velocities=data.qvel[:16],
                 jacobian=J
             )
             
-            # # Project into nullspace (so it doesn't affect object forces)
-            J_T = J.T
-            J_T_pinv = np.linalg.pinv(J_T)
-            # print(f"  J shape: {J.shape}")
-            # print(f"  J_T shape: {J_T.shape}")
-            # print(f"  J_T_pinv shape: {J_T_pinv.shape}")
-            N = np.eye(16) - J_T @ J_T_pinv  # Nullspace projector
-            tau_null = N @ tau_null_raw
-            # print(f"\nDebug shapes:")
-            # print(f"  J_T @ J_T_pinv shape: {(J_T @ J_T_pinv).shape}")
-            # print(f"  tau_null_raw shape: {tau_null_raw.shape}")
-            
             # 9. Combine: τ_des = τ_contact + τ_null (Equation 30)
-            tau_total = tau_imp_qp #+ tau_null           
+            tau_total = tau_imp_qp     
 
             # Apply torques (with safety limits)
             data.ctrl[:16] = np.clip(tau_total, -0.5, 0.5)

@@ -121,7 +121,7 @@ class NullspaceController:
             delta_q = np.array([
                 0.0,
                 0.0,
-                0.5 * (q3 - q4),
+                0.5 * (q4 - q3),
                 0.5 * (q3 - q4)
             ])
         else:
@@ -151,7 +151,7 @@ class NullspaceController:
             delta_qd = np.array([
                 0.0,
                 0.0,
-                0.5 * (qd3 - qd4),
+                0.5 * (qd4 - qd3),
                 0.5 * (qd3 - qd4)
             ])
         else:
