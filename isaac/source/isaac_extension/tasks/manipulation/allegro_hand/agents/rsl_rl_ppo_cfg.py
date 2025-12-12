@@ -11,8 +11,8 @@ from isaaclab_rl.rsl_rl import RslRlOnPolicyRunnerCfg, RslRlPpoActorCriticCfg, R
 @configclass
 class AllegroCubePPORunnerCfg(RslRlOnPolicyRunnerCfg):
     num_steps_per_env = 24
-    max_iterations = 5000
-    save_interval = 50
+    max_iterations = 15000
+    save_interval = 250
     experiment_name = "allegro_cube"
     empirical_normalization = True
     policy = RslRlPpoActorCriticCfg(

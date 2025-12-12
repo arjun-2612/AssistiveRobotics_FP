@@ -6,6 +6,9 @@
 from __future__ import annotations
 
 from dataclasses import MISSING
+import os
+import subprocess
+from datetime import datetime
 
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg, RigidObjectCfg
@@ -23,8 +26,8 @@ from isaaclab.utils import configclass
 from isaaclab.utils.assets import ISAAC_NUCLEUS_DIR
 from isaaclab.utils.noise import AdditiveGaussianNoiseCfg as Gnoise
 
-import isaac_extension.tasks.manipulation.allegro_hand.mdp as mdp
-from isaac_extension.assets.allegro import ALLEGRO_HAND_CFG
+import sslab_extensions.tasks.manipulation.allegro_hand.mdp as mdp
+from sslab_extensions.assets.allegro import ALLEGRO_HAND_CFG, ALLEGRO_JOINT_ORDER
 
 ##
 # Scene definition
@@ -96,7 +99,7 @@ class ActionsCfg:
 
     joint_pos = mdp.EMAJointPositionToLimitsActionCfg(
         asset_name="robot",
-        joint_names=[".*"],
+        joint_names=ALLEGRO_JOINT_ORDER,
         alpha=0.95,
         rescale_to_limits=True,
     )
@@ -115,8 +118,16 @@ class ObservationsCfg:
 
         # observation terms (order preserved)
         # -- robot terms
-        joint_pos = ObsTerm(func=mdp.joint_pos_limit_normalized, noise=Gnoise(std=0.005))
-        joint_vel = ObsTerm(func=mdp.joint_vel_rel, scale=0.2, noise=Gnoise(std=0.01))
+        joint_pos = ObsTerm(
+            func=mdp.joint_pos_limit_normalized, 
+            noise=Gnoise(std=0.005), 
+            params={"asset_cfg": SceneEntityCfg("robot", joint_names=ALLEGRO_JOINT_ORDER)},
+        )
+        joint_vel = ObsTerm(
+            func=mdp.joint_vel_rel, 
+            scale=0.2, noise=Gnoise(std=0.01), 
+            params={"asset_cfg": SceneEntityCfg("robot", joint_names=ALLEGRO_JOINT_ORDER)}
+        )
 
         # -- object terms
         object_pos = ObsTerm(
@@ -240,16 +251,16 @@ class EventsCfg:
             "asset_cfg": SceneEntityCfg("object", body_names=".*"),
         },
     )
-    reset_robot_joints = EventTerm(
-        func=mdp.reset_joints_within_limits_range,
-        mode="reset",
-        params={
-            "position_range": {".*": [0.2, 0.2]},
-            "velocity_range": {".*": [0.0, 0.0]},
-            "use_default_offset": True,
-            "operation": "scale",
-        },
-    )
+    # reset_robot_joints = EventTerm(
+    #     func=mdp.reset_joints_within_limits_range,
+    #     mode="reset",
+    #     params={
+    #         "position_range": {".*": [0.2, 0.2]},
+    #         "velocity_range": {".*": [0.0, 0.0]},
+    #         "use_default_offset": True,
+    #         "operation": "scale",
+    #     },
+    # )
 
 
 @configclass
@@ -350,13 +361,18 @@ class AllegroCubeEnvCfg(ManagerBasedRLEnvCfg):
 
 @configclass
 class AllegroCubeEnvCfg_PLAY(AllegroCubeEnvCfg):
+    recorders: mdp.sslab.RecorderManagerCfg = mdp.sslab.RecorderManagerCfg(
+        dataset_export_dir_path=f"{'/workspace' if os.path.exists('/workspace') else subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip()}/source/sslab_extensions/simulation/isaaclab_data/allegro/cube_repose",
+        dataset_filename=f"cube_repose_{datetime.now().strftime('%m-%d-%y_%H-%M-%S')}",
+    )
+
     def __post_init__(self):
         # post init of parent
         super().__post_init__()
         # make a smaller scene for play
         self.scene.num_envs = 50
         # disable randomization for play
-        self.observations.policy.enable_corruption = False
+        # self.observations.policy.enable_corruption = False
         # remove termination due to timeouts
         self.terminations.time_out = None
 
