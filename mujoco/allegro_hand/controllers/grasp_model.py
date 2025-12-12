@@ -17,7 +17,7 @@ class GraspMatrix:
     
     The grasp matrix relates:
     - Object twist ν to contact velocities: ċ = G^T ν
-    - Contact forces f to object wrench: w = G^T f
+    - Contact forces f to object wrench: w = G f
     """
     
     def __init__(self, n_contacts: int = 4):
@@ -113,7 +113,7 @@ class GraspMatrix:
         """
         Map contact forces to object wrench (Equation 3).
         
-        w = G^T f
+        w = G f
         
         Args:
             contact_forces: f ∈ R^(3n) - forces at all contacts

@@ -153,8 +153,6 @@ try:
             fingers_in_contact = [c['body_id'] for c in contacts]
             fingers_in_c0 = [c['body_id'] for c in init_contacts]
             fingers_lost = set(fingers_in_c0) - set(fingers_in_contact)
-            # print(f"  Contacts: {fingers_in_contact}, lost: {fingers_lost}")
-            # print([(c['body_id'], c['body_name']) for c in contacts])
             
             if len(contacts) >= 2:
                 # 2. Estimate object state
@@ -170,15 +168,6 @@ try:
                 # 3. Build grasp matrix
                 contact_positions = np.array([c['position'] for c in contacts])
                 contact_normals = np.array([c['normal'] for c in contacts])
-
-                # FIX: Ensure all normals point from object toward fingers (outward)
-                for i in range(len(contact_normals)):
-                    # Vector from object center to contact point
-                    to_contact = contact_positions[i] - object_position
-                    
-                    # If normal points toward object center, flip it
-                    if np.dot(contact_normals[i], to_contact) < 0:
-                        contact_normals[i] = -contact_normals[i]
                 
                 n_contacts = len(contacts)
                 grasp_model.n_contacts = n_contacts
@@ -233,7 +222,7 @@ try:
                     desired_wrench=w_desired,
                     grasp_matrix=G,
                     desired_normal_forces=f_d_normals,
-                    contact_normals=contact_normals
+                    contact_normals=contact_normals,
                 )
 
                 # 6b. Compute impedance controller forces
@@ -354,6 +343,7 @@ try:
                         f_t_mag = np.linalg.norm(f_tangent)
                         
                         print(f"  Contact {i+1}:")
+                        print(f"    Finger: {contacts[i]['body_name']} (ID: {contacts[i]['body_id']})")
                         print(f"    Position: {contact_positions[i]}")
                         print(f"    Force vector: [{f_i[0]:6.3f}, {f_i[1]:6.3f}, {f_i[2]:6.3f}] N")
                         print(f"    Normal force: {f_n:.3f} N (desired: {f_d_normals[i]:.3f} N)")
