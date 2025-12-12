@@ -1,3 +1,3 @@
 [submodule "IsaacLab"]
-	path = IsaacLab
+	path = isaac/IsaacLab
 	url = https://github.com/isaac-sim/IsaacLab.git
