@@ -1,0 +1,9 @@
+pyproject.toml
+setup.py
+isaac_extension/__init__.py
+isaac_extension.egg-info/PKG-INFO
+isaac_extension.egg-info/SOURCES.txt
+isaac_extension.egg-info/dependency_links.txt
+isaac_extension.egg-info/not-zip-safe
+isaac_extension.egg-info/requires.txt
+isaac_extension.egg-info/top_level.txt

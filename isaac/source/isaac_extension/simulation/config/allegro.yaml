@@ -1,0 +1,19 @@
+# The Allegro config file, containing the parameters for the simulation environment.
+
+mode: train
+
+task:
+  name: Allegro-Repose-Cube-Train
+  num_envs: 512
+  resume: false 
+  run_folder: 2025-11-29_12-11-48
+  checkpoint: model_3800.pt
+
+play:
+  folder: 2025-12-08_20-42-14
+  checkpoint: model_5750.pt
+
+visuals:
+  enable: true
+  video_length: 400
+  video_interval: 10000

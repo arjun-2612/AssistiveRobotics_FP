@@ -1,7 +1,7 @@
 <mujoco model="left_allegro_hand scene">
   <include file="left_hand.xml"/>
 
-  <statistic center="0 0 0" extent="0.3"/>
+  <statistic center="0 0 0.1" extent="0.3"/>
 
   <visual>
     <rgba haze="0.15 0.25 0.35 1"/>
@@ -70,6 +70,5 @@
         friction="0.8 0.005 0.005" mass="0.1"/>
       <site name="object_center" pos="0 0 0" size="0.005" rgba="1 0 0 1"/>
     </body>
-
   </worldbody>
 </mujoco>
