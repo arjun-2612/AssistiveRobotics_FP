@@ -3,6 +3,10 @@ EECE 5552 Final Project for Team 4
 
 Jorge Ortega, Arjun Viswanathan, Kyle Lou, Chengpeng Jin, Sasha Oswald.
 
+![Force Control Demo](videos/force_control_grasp.mp4)
+
+![RL Control Demo](videos/allegro_inhand.mp4)
+
 # Cloning
 Since this repository has submodules, make sure you clone recursively. In VS Code, when you do ```ctrl+shift+p``` and type ```clone``` it will show an option ```Clone (Recursive)```. Make sure you select that and paste the link to this repo.
 
