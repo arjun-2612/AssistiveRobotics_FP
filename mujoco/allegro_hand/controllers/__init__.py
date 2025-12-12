@@ -7,7 +7,7 @@ from .impedance_controller import ImpedanceController
 from .grasp_model import GraspMatrix
 from .hand_jacobian import HandJacobian
 from .contact_detector import ContactDetector
-from .QP import InternalForceOptimizer, SimplifiedInternalForceComputer
+from .QP import InternalForceOptimizer
 from .force_mapper import ForceMapper
 from .nullspace_controller import NullspaceController
 from .contact_manager import ContactManager, ContactState
@@ -19,7 +19,6 @@ __all__ = [
     'HandJacobian',
     'ContactDetector',
     'InternalForceOptimizer',
-    'SimplifiedInternalForceComputer',
     'ForceMapper',
     'NullspaceController',
     'ContactManager',

@@ -44,7 +44,7 @@ class GraspMatrix:
             object_position: Object center position (3D vector)
             
         Returns:
-            G: Grasp matrix (6x3n)
+            G: Grasp matrix (3nx6)
         """
         # Reshape if flat array
         if contact_positions.ndim == 1:
@@ -53,20 +53,17 @@ class GraspMatrix:
         assert contact_positions.shape[0] == self.n_contacts, \
             f"Expected {self.n_contacts} contacts, got {contact_positions.shape[0]}"
         
-        # Initialize grasp matrix
         G = np.zeros((6, 3 * self.n_contacts))
-        
         for i in range(self.n_contacts):
             c_i = contact_positions[i]  # Contact position
             r_i = c_i - object_position # Position vector from object center to contact
             
             # Build G_i block (6x3)
-            G[0:3, 3*i:3*i+3] = np.eye(3)   # Top 3 rows: identity (force contribution)
-            
+            G[0:3, 3*i:3*i+3] = np.eye(3)   # Force contribution
             G[3:6, 3*i:3*i+3] = self._skew_symmetric(r_i)   # Bottom 3 rows: skew-symmetric of r_i (torque contribution)
             
         self.G = G
-        return G
+        return self.G
     
     @staticmethod
     def _skew_symmetric(v: np.ndarray) -> np.ndarray:
@@ -157,30 +154,31 @@ class GraspMatrix:
         rank = np.linalg.matrix_rank(self.G, tol=tolerance)
         return rank == 6
     
-    def compute_internal_forces(self, contact_forces: np.ndarray) -> np.ndarray:
+    def compute_f_star_in_Nullspace(self, f_star: np.ndarray) -> np.ndarray:
         """
         Compute the internal force component (nullspace of G).
         
         Internal forces squeeze the object without moving it.
-        f_internal = (I - G^+ G) f
+        f_null_star = (I - G^T (G^T)+) f*
         
         Args:
-            contact_forces: Total contact forces f ∈ R^(3n)
+            f_star: Total contact forces f ∈ R^(3n)
             
         Returns:
             Internal force component
         """
         assert self.G is not None, "Grasp matrix not computed yet"
         
-        # Pseudoinverse of G
-        G_pinv = np.linalg.pinv(self.G)
+        # Pseudoinverse of G_T
+        G_T = self.G.T
+        G_T_pinv = np.linalg.pinv(G_T)
         
         # Nullspace projector
         n_dim = 3 * self.n_contacts
         I = np.eye(n_dim)
-        nullspace_proj = I - G_pinv @ self.G
+        nullspace_proj = I - G_T @ G_T_pinv
         
         # Project forces into nullspace
-        f_internal = nullspace_proj @ contact_forces
+        f_null_star = nullspace_proj @ f_star
         
-        return f_internal
+        return f_null_star

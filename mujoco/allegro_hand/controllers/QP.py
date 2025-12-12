@@ -1,0 +1,359 @@
+"""
+Internal Forces Optimization - Section III.B
+Solves a Quadratic Program to compute contact forces that:
+1. Generate desired object wrench (for dynamics)
+2. Add internal forces (grasp maintenance)
+3. Satisfy friction cone constraints
+
+Key equation (17): f = (G^T)^+ w + (I - G^T(G^T)^+) f_*
+"""
+
+import numpy as np
+from typing import Optional, Tuple
+from controllers.object_state import ObjectPoseEstimator
+try:
+    import cvxpy as cp
+    CVXPY_AVAILABLE = True
+except ImportError:
+    CVXPY_AVAILABLE = False
+    print("Warning: cvxpy not installed. Install with: pip install cvxpy")
+
+
+class InternalForceOptimizer:
+    """
+    Computes optimal contact forces using QP formulation from Section III.B.
+    
+    Solves Equation (18):
+    min ||f_* - f_d||²
+    subject to friction cone constraints on f_int (Equations 21-27)
+    """
+    
+    def __init__(self, n_contacts: int = 4, friction_coefficient: float = 0.8, f_min: float = 0.1, f_max: float = 50.0):
+        """
+        Initialize internal force optimizer.
+        
+        Args:
+            n_contacts: Number of contact points
+            friction_coefficient: μ - friction coefficient
+            f_min: Minimum normal force (N)
+            f_max: Maximum normal force (N)
+        """
+        if not CVXPY_AVAILABLE:
+            raise ImportError("cvxpy is required for QP optimization. Install with: pip install cvxpy")
+            
+        self.n_contacts = n_contacts
+        self.mu = friction_coefficient
+        self.f_min = f_min
+        self.f_max = f_max
+
+    def compute_desired_acceleration(self, object_state, target_position, target_velocity,
+                                 target_orientation=None, target_angular_vel=None,
+                                 Kp_pos=10.0, Kd_pos=5.0, Kp_rot=5.0, Kd_rot=2.0):
+        """
+        Compute desired object acceleration using PD control.
+        
+        Similar to quadruped COM control, but for manipulated object.
+        """
+        # Current state
+        current_pos = object_state['position']
+        current_vel = object_state['velocity']
+        current_ang_vel = object_state['angular_velocity']
+        
+        # Linear acceleration (PD control for position)
+        pos_error = target_position - current_pos
+        vel_error = target_velocity - current_vel
+        ddx_des = Kp_pos * pos_error + Kd_pos * vel_error
+        
+        # Angular acceleration (PD control for orientation)
+
+        current_quat = object_state.get('orientation', np.array([1, 0, 0, 0]))
+        target_euler = ObjectPoseEstimator._quat_to_euler(target_orientation)
+        current_euler = ObjectPoseEstimator._quat_to_euler(current_quat)
+        theta_error = target_euler - current_euler
+
+        omega_error = target_angular_vel - current_ang_vel
+        alpha_des = Kp_rot * theta_error + Kd_rot * omega_error
+        
+        # Combine and clamp
+        desired_acc = np.hstack([ddx_des, alpha_des])
+        desired_acc = np.clip(desired_acc, -3.0, 3.0)  # Safety limits (increased for stronger control)
+        
+        return desired_acc
+        
+    def compute_contact_forces(self, desired_wrench: np.ndarray, grasp_matrix: np.ndarray, 
+                               desired_normal_forces: Optional[np.ndarray] = None,
+                               contact_normals: Optional[np.ndarray] = None) -> Tuple[np.ndarray, dict]:
+        """
+        Compute optimal contact forces using QP.
+        
+        Solves Equation (18) in the paper:
+        min ||f_* - f_d||²
+        subject to friction cone constraints on f_int
+        
+        Then returns f_int using Equation (19):
+        f_int = (G^T)^+ w_dyn + (I - G^T(G^T)^+) f_*
+        
+        Args:
+            desired_wrench: w ∈ R^6 - desired object wrench
+            grasp_matrix: G ∈ R^(6×3n) - grasp matrix
+            desired_normal_forces: f_d^[i] ∈ R^n - desired normal forces (optional)
+            contact_normals: n^[i] ∈ R^(3×n) - contact normal vectors (optional)
+            
+        Returns:
+            f_int: Optimal contact forces (3n vector)
+            info: Dictionary with optimization info
+        """
+        # w_dyn = desired_wrench (Equation 15, simplified)
+        w_dyn = desired_wrench
+        
+        # Compute f_d: desired internal forces (Equation 16)
+        if desired_normal_forces is not None and contact_normals is not None:
+            f_d = self._construct_desired_forces(desired_normal_forces, contact_normals)
+        else:
+            # Default: small squeeze force in normal direction
+            f_d = np.zeros(3 * self.n_contacts)
+            if contact_normals is not None:
+                for i in range(self.n_contacts):
+                    f_d[3*i:3*i+3] = contact_normals[i] * 5.0  # 5N default
+        
+        # Solve QP for optimal f_* (Equation 18)
+        G = grasp_matrix
+        GT = G.T
+        # Compute final forces using Equation (19)
+        # f_int = (G^T)^+ w_dyn + (I - G^T(G^T)^+) f_*
+        G_pinv = np.linalg.pinv(G)
+        f_dyn = G_pinv @ w_dyn
+        
+        n_dim = 3 * self.n_contacts
+        I = np.eye(n_dim)
+        nullspace_proj = I - G_pinv @ G
+
+        f_star, qp_info = self._solve_qp(f_d, GT, f_dyn, nullspace_proj, contact_normals)
+        f_int = f_dyn + nullspace_proj @ -f_star
+        
+        # Prepare info
+        info = {
+            'f_int': f_int,                        # Full optimized contact forces
+            'f_dyn': f_dyn,                    # Wrench-generating component
+            'f_null_star': nullspace_proj @ f_star,   # Internal force component
+            'f_star': f_star,                        # Optimized f_*
+            'qp_status': qp_info['status'],
+            'qp_optimal': qp_info['optimal']
+        }
+        
+        return f_int, info
+    
+    def _solve_qp(self, f_d: np.ndarray, G_T: np.ndarray, f_dyn: np.ndarray, N: np.ndarray,
+                contact_normals: Optional[np.ndarray] = None) -> Tuple[np.ndarray, dict]:
+        """
+        Solve the QP problem (Equations 18, 24-27).
+        
+        Strategy: Since constraints are on f_int = f_wrench + N @ f_*, 
+        we can reformulate as constraints directly on f_*.
+        """
+        n_dim = 3 * self.n_contacts
+        
+        # Decision variable: f_* ∈ R^(3n)
+        f_star = cp.Variable(n_dim)
+        
+        # Objective: minimize ||f_* - f_d||² (Equation 18)
+        objective = cp.Minimize(cp.sum_squares(f_star - f_d))
+        
+        # Constraints will be on each contact's force
+        constraints = []
+        
+        for i in range(self.n_contacts):
+            # Extract indices for contact i
+            idx = slice(3*i, 3*(i+1))
+            
+            # Compute f_int for contact i: f_int_i = f_dyn_i + N_i @ f_*
+            # This is affine in f_*, so CVXPY can handle it
+            f_dyn_i = f_dyn[idx]
+            N_i = N[idx, :]
+            f_int_i = f_dyn_i + N_i @ f_star
+            
+            if contact_normals is not None:
+                n_i = contact_normals[i]  # Normal vector
+                
+                # Build orthogonal tangent basis
+                if abs(n_i[2]) < 0.9:
+                    t1 = np.array([n_i[1], -n_i[0], 0.0])
+                else:
+                    t1 = np.array([0.0, n_i[2], -n_i[1]])
+                t1 = t1 / np.linalg.norm(t1)
+                t2 = np.cross(n_i, t1)
+                t2 = t2 / np.linalg.norm(t2)
+                
+                # Force components (these are scalar expressions in f_*)
+                f_n = n_i @ f_int_i   # Normal force
+                f_t1 = t1 @ f_int_i   # Tangential 1
+                f_t2 = t2 @ f_int_i   # Tangential 2
+                
+                # Friction pyramid constraints (4 linear inequalities)
+                # Inscribe pyramid in friction cone
+                mu_scaled = self.mu / np.sqrt(2)
+                
+                constraints.append(f_t1 <= mu_scaled * f_n)
+                constraints.append(-f_t1 <= mu_scaled * f_n)
+                constraints.append(f_t2 <= mu_scaled * f_n)
+                constraints.append(-f_t2 <= mu_scaled * f_n)
+                
+                # Normal force bounds
+                constraints.append(f_n >= self.f_min)
+                constraints.append(f_n <= self.f_max)
+            else:
+                # Fallback: assume z is normal direction
+                f_n = f_int_i[2]
+                f_t1 = f_int_i[0]
+                f_t2 = f_int_i[1]
+                
+                mu_scaled = self.mu / np.sqrt(2)
+                constraints.append(f_t1 <= mu_scaled * f_n)
+                constraints.append(-f_t1 <= mu_scaled * f_n)
+                constraints.append(f_t2 <= mu_scaled * f_n)
+                constraints.append(-f_t2 <= mu_scaled * f_n)
+                constraints.append(f_n >= self.f_min)
+                constraints.append(f_n <= self.f_max)
+        
+        # Solve QP
+        problem = cp.Problem(objective, constraints)
+        
+        try:
+            # Try OSQP first (fast for QP)
+            problem.solve(solver=cp.OSQP, verbose=False, eps_abs=1e-4, eps_rel=1e-4)
+            
+            if problem.status in [cp.OPTIMAL, cp.OPTIMAL_INACCURATE]:
+                f_star_opt = f_star.value
+                if f_star_opt is None:
+                    f_star_opt = f_d  # Fallback to desired
+                optimal = True
+            else:
+                print(f"⚠ QP solver status: {problem.status}")
+                # Try fallback: use desired forces
+                f_star_opt = np.zeros(n_dim)
+                optimal = False
+                
+        except Exception as e:
+            print(f"❌ QP solver failed: {e}")
+            # Fallback: use desired internal forces directly
+            f_star_opt = np.zeros(n_dim)
+            optimal = False
+        
+        info = {
+            'status': problem.status if 'problem' in locals() else 'error',
+            'optimal': optimal,
+            'objective_value': problem.value if optimal else None
+        }
+        
+        return f_star_opt, info
+    
+    def _construct_desired_forces(self, normal_forces: np.ndarray, contact_normals: np.ndarray) -> np.ndarray:
+        """
+        Construct f_d from desired normal forces (Equation 16).
+        
+        f_d^[i] = f_d^[i] n^[i]
+        
+        Args:
+            normal_forces: Desired normal force magnitudes (n,)
+            contact_normals: Contact normal directions (n × 3)
+            
+        Returns:
+            f_d: Full force vector (3n,)
+        """
+        assert normal_forces.shape[0] == self.n_contacts
+        assert contact_normals.shape == (self.n_contacts, 3)
+        
+        f_d = np.zeros(3 * self.n_contacts)
+        
+        for i in range(self.n_contacts):
+            # f_d^[i] = f_d^[i] * n^[i]
+            f_d[3*i:3*i+3] = normal_forces[i] * contact_normals[i]
+            
+        return f_d
+    
+    def compute_contact_forces_with_activation(self, desired_wrench: np.ndarray, grasp_matrix: np.ndarray,
+                                               desired_normal_forces: np.ndarray, contact_normals: np.ndarray, 
+                                               activation_values: np.ndarray) -> Tuple[np.ndarray, dict]:
+        """
+        Compute contact forces with activation scaling (Equation 35).
+        
+        Args:
+            desired_wrench: w ∈ R^6
+            grasp_matrix: G ∈ R^(6×3n)
+            desired_normal_forces: f_d^[i] ∈ R^n (before activation)
+            contact_normals: n^[i] ∈ R^(3×n)
+            activation_values: a^[i] ∈ R^n (from ContactManager)
+            
+        Returns:
+            f_int: Contact forces
+            info: Optimization info
+        """
+        # Scale desired forces by activation
+        scaled_forces = desired_normal_forces * activation_values
+        
+        return self.compute_contact_forces(
+            desired_wrench,
+            grasp_matrix,
+            desired_normal_forces=scaled_forces,
+            contact_normals=contact_normals
+        )
+    
+    def compute_dynamic_wrench(self, object_state: dict, desired_acceleration: np.ndarray,
+                              gravity: float = -9.81) -> np.ndarray:
+        """
+        Compute dynamic object wrench (Equation 15).
+        
+        w_dyn = M_o(x)ẍ + C_o(x,ẋ)ẋ + g_o(x)
+        
+        Simplified version (can be extended with Coriolis and gravity terms).
+        
+        Args:
+            object_state: Dictionary with 'position', 'velocity'
+            desired_acceleration: ẍ_desired ∈ R^6
+            mass_matrix: M_o ∈ R^(6×6)
+            
+        Returns:
+            w_dyn: Dynamic wrench ∈ R^6
+        """
+        # Extract object properties
+        mass = object_state.get('mass', 0.1)  # kg
+        inertia = object_state.get('inertia', np.eye(3) * 0.001)  # 3x3 inertia tensor
+        velocity = object_state.get('velocity', np.zeros(3))  # Linear velocity
+        angular_velocity = object_state.get('angular_velocity', np.zeros(3))  # Angular velocity
+        
+        # Construct mass matrix M_o ∈ R^(6×6)
+        # M_o = [m*I_3    0  ]
+        #       [  0    I_o ]
+        M_o = np.zeros((6, 6))
+        M_o[:3, :3] = mass * np.eye(3)  # Mass for linear motion
+        M_o[3:, 3:] = inertia  # Inertia tensor for rotational motion
+        
+        # 1. Inertial forces: M_o * ẍ
+        w_inertial = M_o @ desired_acceleration
+        
+        # 2. Coriolis/centrifugal forces: C_o(x, ẋ) * ẋ
+        # For linear motion: negligible
+        # For rotational motion: ω × (I_o * ω)
+        angular_momentum = inertia @ angular_velocity
+        w_coriolis = np.zeros(6)
+        w_coriolis[3:] = np.cross(angular_velocity, angular_momentum)
+        
+        # 3. Gravitational wrench: g_o
+        # Gravity only affects linear motion in z-direction
+        g_o = np.zeros(6)
+        g_o[2] = mass * abs(gravity)  # Upward force to compensate gravity
+        # Note: gravity is negative (-9.81), so we use abs() to get positive upward force
+        
+        # Total dynamic wrench (Equation 15)
+        w_dyn = w_inertial + w_coriolis + g_o
+        
+        return w_dyn
+    
+    def set_friction_coefficient(self, mu: float):
+        """Update friction coefficient."""
+        self.mu = mu
+        
+    def set_force_limits(self, f_min: float, f_max: float):
+        """Update normal force limits."""
+        self.f_min = f_min
+        self.f_max = f_max
