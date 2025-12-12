@@ -45,6 +45,40 @@ class InternalForceOptimizer:
         self.mu = friction_coefficient
         self.f_min = f_min
         self.f_max = f_max
+
+    def compute_desired_acceleration(self, object_state, target_position, target_velocity,
+                                 target_orientation=None, target_angular_vel=None,
+                                 Kp_pos=10.0, Kd_pos=5.0, Kp_rot=5.0, Kd_rot=2.0):
+        """
+        Compute desired object acceleration using PD control.
+        
+        Similar to quadruped COM control, but for manipulated object.
+        """
+        # Current state
+        current_pos = object_state['position']
+        current_vel = object_state['velocity']
+        current_ang_vel = object_state['angular_velocity']
+        
+        # Linear acceleration (PD control for position)
+        pos_error = target_position - current_pos
+        vel_error = target_velocity - current_vel
+        ddx_des = Kp_pos * pos_error + Kd_pos * vel_error
+        
+        # Angular acceleration (PD control for orientation)
+
+        current_quat = object_state.get('orientation', np.array([1, 0, 0, 0]))
+        target_euler = ObjectPoseEstimator._quat_to_euler(target_orientation)
+        current_euler = ObjectPoseEstimator._quat_to_euler(current_quat)
+        theta_error = target_euler - current_euler
+
+        omega_error = target_angular_vel - current_ang_vel
+        alpha_des = Kp_rot * theta_error + Kd_rot * omega_error
+        
+        # Combine and clamp
+        desired_acc = np.hstack([ddx_des, alpha_des])
+        desired_acc = np.clip(desired_acc, -3.0, 3.0)  # Safety limits (increased for stronger control)
+        
+        return desired_acc
         
     def compute_contact_forces(self, desired_wrench: np.ndarray, grasp_matrix: np.ndarray, 
                                desired_normal_forces: Optional[np.ndarray] = None,
@@ -108,41 +142,6 @@ class InternalForceOptimizer:
         }
         
         return f_int, info
-    
-
-    def compute_desired_acceleration(self, object_state, target_position, target_velocity,
-                                 target_orientation=None, target_angular_vel=None,
-                                 Kp_pos=10.0, Kd_pos=5.0, Kp_rot=5.0, Kd_rot=2.0):
-        """
-        Compute desired object acceleration using PD control.
-        
-        Similar to quadruped COM control, but for manipulated object.
-        """
-        # Current state
-        current_pos = object_state['position']
-        current_vel = object_state['velocity']
-        current_ang_vel = object_state['angular_velocity']
-        
-        # Linear acceleration (PD control for position)
-        pos_error = target_position - current_pos
-        vel_error = target_velocity - current_vel
-        ddx_des = Kp_pos * pos_error + Kd_pos * vel_error
-        
-        # Angular acceleration (PD control for orientation)
-
-        current_quat = object_state.get('orientation', np.array([1, 0, 0, 0]))
-        target_euler = ObjectPoseEstimator._quat_to_euler(target_orientation)
-        current_euler = ObjectPoseEstimator._quat_to_euler(current_quat)
-        theta_error = target_euler - current_euler
-
-        omega_error = target_angular_vel - current_ang_vel
-        alpha_des = Kp_rot * theta_error + Kd_rot * omega_error
-        
-        # Combine and clamp
-        desired_acc = np.hstack([ddx_des, alpha_des])
-        desired_acc = np.clip(desired_acc, -3.0, 3.0)  # Safety limits (increased for stronger control)
-        
-        return desired_acc
     
     def _solve_qp(self, f_d: np.ndarray, G_T: np.ndarray, f_dyn: np.ndarray, N: np.ndarray,
                 contact_normals: Optional[np.ndarray] = None) -> Tuple[np.ndarray, dict]:
