@@ -1,4 +1,4 @@
-# AssistiveRobotics_FP
+# Inhand Manipulation of a Cube with Allegro Dexterous Hand
 EECE 5552 Final Project for Team 4
 
 Jorge Ortega, Arjun Viswanathan, Kyle Lou, Chengpeng Jin, Sasha Oswald.
